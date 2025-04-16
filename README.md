@@ -1,11 +1,11 @@
 
-# 🎶 Projeto Discogs Data Lakehouse
+# Projeto Discogs Data Lakehouse
 
 Este projeto implementa um pipeline completo de engenharia de dados para ingestão, transformação e disponibilização de dados do [Discogs](https://www.discogs.com/developers/) em uma arquitetura **data lakehouse**, utilizando a arquitetura **medalhão** (bronze, prata e ouro).
 
 ---
 
-## 🧱 Arquitetura
+## Arquitetura
 
 ```mermaid
 graph TD
@@ -19,7 +19,7 @@ graph TD
 
 ---
 
-## 🚀 Tecnologias utilizadas
+## Tecnologias utilizadas
 
 - **Airflow**: Orquestração dos pipelines
 - **Apache Spark**: Processamento e transformações
@@ -31,7 +31,7 @@ graph TD
 
 ---
 
-## ⚙️ Organização das camadas
+##  Organização das camadas
 
 | Camada | Descrição | Ferramenta |
 |--------|-----------|------------|
@@ -41,7 +41,7 @@ graph TD
 
 ---
 
-## 📂 Estrutura do Projeto
+## Estrutura do Projeto
 
 ```
 .
@@ -63,7 +63,7 @@ graph TD
 
 ---
 
-## ✅ Como executar o projeto
+## Como executar o projeto
 
 1. **Clone o repositório**
 ```bash
@@ -87,16 +87,16 @@ docker-compose up -d
 
 ---
 
-## 📊 Visualizações
+## Visualizações
 
 Os dados da camada Gold podem ser acessados pelo Metabase via Trino. Exemplos de visualizações disponíveis:
-- 🎧 Artistas mais populares
-- 📅 Número de lançamentos por ano
-- 🏷️ Gêneros mais presentes por década
+-  Artistas mais populares
+-  Número de lançamentos por ano
+-  Gêneros mais presentes por década
 
 ---
 
-## ✍️ Como criar novos modelos Gold
+##  Como criar novos modelos Gold
 
 1. Crie uma nova query no diretório `gold_queries/` com extensão `.sql`
 2. Ela será automaticamente executada pela DAG `discogs_gold_dag`
@@ -113,21 +113,21 @@ GROUP BY genre
 
 ---
 
-## 📌 Possíveis melhorias
+## Possíveis melhorias
 
-- 📦 Adicionar validações com Great Expectations
-- ✅ Testes unitários com Pytest para os scripts
-- 📈 Monitoramento dos pipelines com alertas
-- 🧠 Aplicar dbt como camada de transformação SQL
+-  Adicionar validações com Great Expectations
+-  Testes unitários com Pytest para os scripts
+-  Monitoramento dos pipelines com alertas
+-  Aplicar dbt como camada de transformação SQL
 
 ---
 
-## 👤 Autor
+## Autor
 
 Desenvolvido por Vitor Musachio
 
 ---
 
-## 📜 Licença
+## Licença
 
 MIT
