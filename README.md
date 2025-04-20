@@ -96,7 +96,6 @@ pip install -r requirements.txt
 ### 3. Acesse o Airflow
 
 - http://localhost:8080
-- Usuário: `airflow` | Senha: `airflow`
 
 As DAGs disponíveis são:
 
