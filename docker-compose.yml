@@ -1,18 +1,20 @@
-version: '3.8'
+version: '3.7'
 
 services:
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     container_name: minio
+    environment:
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
     ports:
       - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio123
-    command: server /data --console-address ":9001"
     volumes:
-      - minio-data:/data
+      - ./minio-data:/data
+    command: server /data
+    networks:
+      - data_network
+    restart: unless-stopped
 
   trino:
     image: trinodb/trino:latest
@@ -21,28 +23,66 @@ services:
       - "8080:8080"
     volumes:
       - ./trino/etc:/etc/trino
+      - ./silver:/mnt/silver
+      - ./gold:/mnt/gold
+    networks:
+      - data_network
+    restart: unless-stopped
 
   metabase:
-    image: metabase/metabase
+    image: metabase/metabase:latest
     container_name: metabase
+    environment:
+      - MB_DB_FILE=/metabase-data/metabase.db
+      - MB_JETTY_PORT=3000
     ports:
       - "3000:3000"
+    volumes:
+      - ./metabase-data:/metabase-data
+    networks:
+      - data_network
+    restart: unless-stopped
+
+  spark:
+    image: bitnami/spark:latest
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    volumes:
+      - ./spark-data:/spark
+    networks:
+      - data_network
+    restart: unless-stopped
 
   airflow:
-    build: ./airflow
+    image: apache/airflow:2.4.3
     container_name: airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=mysql://airflow:airflow@mysql/airflow
     ports:
       - "8081:8080"
-    environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__FERNET_KEY: ''
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
-      AIRFLOW__WEBSERVER__RBAC: 'True'
     volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./scripts:/opt/airflow/scripts
-    depends_on:
-      - minio
+      - ./airflow-data:/opt/airflow
+    networks:
+      - data_network
+    restart: unless-stopped
 
-volumes:
-  minio-data:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=airflow
+    ports:
+      - "3306:3306"
+    networks:
+      - data_network
+    restart: unless-stopped
+
+networks:
+  data_network:
+    driver: bridge

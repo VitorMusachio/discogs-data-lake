@@ -1,0 +1,11 @@
+apache-airflow==2.8.1
+apache-airflow-providers-apache-spark
+apache-airflow-providers-amazon
+apache-airflow-providers-http
+minio
+requests
+pandas
+pyspark==3.5.1
+python-dotenv
+pyyaml
+loguru
