@@ -72,10 +72,10 @@ Os seguintes endpoints da API oficial do [Discogs](https://www.discogs.com/devel
 
 | Tabela            | Descrição |
 |-------------------|-----------|
-| `fct_releases`    | Lançamentos de mídia musical com chaves para artistas, gravadoras e datas |
-| `fct_marketplace` | Transações de compra e venda de mídia física |
-| `fct_wishlist`    | Itens desejados por usuários (referencia `dim_users`, `dim_artists`, `fct_releases`) |
-| `fct_collections` | Itens efetivamente presentes nas coleções dos usuários |
+| `fact_releases`    | Lançamentos de mídia musical com chaves para artistas, gravadoras e datas |
+| `fact_marketplace` | Transações de compra e venda de mídia física |
+| `fact_wishlist`    | Itens desejados por usuários (referencia `dim_users`, `dim_artists`, `fct_releases`) |
+| `fact_collections` | Itens efetivamente presentes nas coleções dos usuários |
 
 ---
 
