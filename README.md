@@ -40,7 +40,7 @@ Os seguintes endpoints da API oficial do [Discogs](https://www.discogs.com/devel
 
 ### Bronze
 - **Objetivo:** Armazenar dados crus, diretamente da API, em formato `Parquet`.
-- **Exemplo de estrutura:** `bronze/artists/2024-04-20/artists.parquet`
+- **Exemplo de estrutura:** `bronze/artists/yyyy-mm-dd/artists.parquet`
 
 ### Silver
 - **Objetivo:** Padronização de nomenclatura e tipos:
@@ -121,4 +121,4 @@ As DAGs disponíveis são:
 
 ---
 
-**Desenvolvido por:** [Vitor Musachio]  
+**Desenvolvido por:** Vitor Musachio
