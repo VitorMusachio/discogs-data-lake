@@ -58,7 +58,7 @@ Os seguintes endpoints da API oficial do [Discogs](https://www.discogs.com/devel
 
 ---
 
-## Tabelas de Fatos e Dimensões (GOLD)
+## Tabelas de Fatos e Dimensões (Gold)
 
 ### Tabelas de Dimensão
 
