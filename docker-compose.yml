@@ -84,6 +84,7 @@ services:
   trino:
     image: trinodb/trino:460
     env_file: .env
+    mem_limit: 2g  # a JVM do Trino usa 80% da memória disponível; sem limite, toma a máquina
     ports:
       - "8081:8080"
     volumes:
