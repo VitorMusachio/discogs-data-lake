@@ -1,0 +1,25 @@
+# O que o pipeline acompanha. Edite à vontade: mudanças valem a partir da próxima execução.
+
+# Usuários do Discogs cujas coleções e wantlists entram na Gold.
+# Os releases dessas listas passam a ser acompanhados automaticamente no snapshot diário.
+# A coleção precisa ser pública, ou pertencer ao dono do DISCOGS_TOKEN.
+usernames:
+  - seu_username_aqui
+
+# Sementes da DAG discogs_discovery (execução manual).
+# Cada item vira uma busca em /database/search?type=release; cada página traz até 100 releases.
+# Campos aceitos: year, genre, style, country, format, pages (padrão 1), sort (padrão "want").
+discovery:
+  - year: 1991
+    genre: Rock
+    pages: 1
+  - year: 1997
+    genre: Electronic
+    pages: 1
+
+limits:
+  # Teto de releases acompanhados. Cada um custa 2 chamadas por dia (release + stats);
+  # com o limite de 60 chamadas por minuto, 500 releases levam cerca de 17 minutos por dia.
+  max_tracked_releases: 500
+  # Se mais que essa fração das chamadas de uma etapa falhar, a tarefa falha no Airflow.
+  max_failure_ratio: 0.2
