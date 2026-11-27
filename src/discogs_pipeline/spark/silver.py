@@ -46,6 +46,11 @@ def _write(df: DataFrame, root: str, table: str, ds: str) -> int:
     return df.count()
 
 
+def _nullif(col, value):
+    """`col`, ou null quando igual a `value` (F.nullif do PySpark 3.5 falha com colunas não resolvidas)."""
+    return F.when(col != F.lit(value), col)
+
+
 def _valid_date(col: str):
     """'1991-09-24' vira data; '1991', '1991-00-00' e vazios viram null."""
     c = F.col(col)
@@ -90,8 +95,8 @@ def build_releases(spark, root, ds) -> dict[str, int]:
         "id_release",
         F.col("a.id").alias("id_artist"),
         (F.col("pos") + 1).alias("nr_position"),
-        F.coalesce(F.nullif(F.col("a.anv"), F.lit("")), F.col("a.name")).alias("nm_artist_credit"),
-        F.nullif(F.col("a.join"), F.lit("")).alias("ds_join"),
+        F.coalesce(_nullif(F.col("a.anv"), ""), F.col("a.name")).alias("nm_artist_credit"),
+        _nullif(F.col("a.join"), "").alias("ds_join"),
     ).where(F.col("id_artist") > 0)
     tracks = (
         df.select(F.col("id").alias("id_release"), F.posexplode("tracklist").alias("pos", "t"))
@@ -101,7 +106,7 @@ def build_releases(spark, root, ds) -> dict[str, int]:
             F.col("t.position").alias("cd_position"),
             (F.col("pos") + 1).alias("nr_sequence"),
             F.col("t.title").alias("ds_title"),
-            F.nullif(F.col("t.duration"), F.lit("")).alias("ds_duration"),
+            _nullif(F.col("t.duration"), "").alias("ds_duration"),
             _duration_seconds("t.duration").alias("nr_duration_sec"),
         )
     )
@@ -160,13 +165,13 @@ def build_user_lists(spark, root, ds) -> dict[str, int]:
         F.col("data.folder_id").alias("id_folder"),
         F.col("data.id").alias("id_release"),
         F.to_timestamp("data.date_added").alias("ts_added"),
-        F.nullif(F.col("data.rating"), F.lit(0)).alias("nr_rating"),
+        _nullif(F.col("data.rating"), 0).alias("nr_rating"),
     )
     wantlist = read_bronze(spark, root, "wantlist", ds, WANT).select(
         F.col("username").alias("nm_username"),
         F.col("data.id").alias("id_release"),
         F.to_timestamp("data.date_added").alias("ts_added"),
-        F.nullif(F.col("data.rating"), F.lit(0)).alias("nr_rating"),
+        _nullif(F.col("data.rating"), 0).alias("nr_rating"),
     )
     return {
         "collection_items": _write(collection, root, "collection_items", ds),
