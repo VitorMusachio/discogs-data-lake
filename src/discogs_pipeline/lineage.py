@@ -116,23 +116,32 @@ def validate(lineage: Lineage) -> list[str]:
             if not producers:
                 errors.append(f"{task.key} reads {dataset}, which no task produces")
                 continue
-            if not any(p.dag_id in before_dags or (p.dag_id == task.dag_id and p.task_id in before_tasks)
-                       for p in producers):
+            if not any(
+                p.dag_id in before_dags or (p.dag_id == task.dag_id and p.task_id in before_tasks) for p in producers
+            ):
                 options = ", ".join(sorted({p.dag_id for p in producers}))
-                errors.append(f"{task.key} reads {dataset}, but none of its producers runs before it; "
-                              f"add one of [{options}] to `schedule.after` of {task.dag_id}")
+                errors.append(
+                    f"{task.key} reads {dataset}, but none of its producers runs before it; "
+                    f"add one of [{options}] to `schedule.after` of {task.dag_id}"
+                )
     return errors
 
 
 def to_json(lineage: Lineage) -> str:
     doc = {
-        "dags": {d: {"layer": s.layer, "after": list(s.after), "schedule": s.schedule}
-                 for d, s in sorted(lineage.specs.items())},
-        "datasets": {d: {"producers": sorted(p.key for p in lineage.producers(d)),
-                         "consumers": sorted(c.key for c in lineage.consumers(d)),
-                         "upstream": lineage.upstream_of(d),
-                         "downstream": lineage.downstream_of(d)}
-                     for d in lineage.datasets()},
+        "dags": {
+            d: {"layer": s.layer, "after": list(s.after), "schedule": s.schedule}
+            for d, s in sorted(lineage.specs.items())
+        },
+        "datasets": {
+            d: {
+                "producers": sorted(p.key for p in lineage.producers(d)),
+                "consumers": sorted(c.key for c in lineage.consumers(d)),
+                "upstream": lineage.upstream_of(d),
+                "downstream": lineage.downstream_of(d),
+            }
+            for d in lineage.datasets()
+        },
     }
     return json.dumps(doc, indent=2, sort_keys=False) + "\n"
 
@@ -167,7 +176,14 @@ def to_markdown(lineage: Lineage) -> str:
             lines.append("    end")
     edges = sorted({(i, o) for t in lineage.tasks for i in t.inputs for o in t.outputs})
     lines += [f"    {_node_id(i)} --> {_node_id(o)}" for i, o in edges]
-    lines += ["```", "", "## Dependencies", "", "| Dataset | Produced by | Upstream | Downstream |", "|---|---|---|---|"]
+    lines += [
+        "```",
+        "",
+        "## Dependencies",
+        "",
+        "| Dataset | Produced by | Upstream | Downstream |",
+        "|---|---|---|---|",
+    ]
     for d in lineage.datasets():
         producers = ", ".join(f"`{p.key}`" for p in lineage.producers(d)) or "—"
         up = ", ".join(f"`{u}`" for u in lineage.upstream_of(d)) or "—"
@@ -175,8 +191,12 @@ def to_markdown(lineage: Lineage) -> str:
         lines.append(f"| `{d}` | {producers} | {up} | {down} |")
     unconsumed = [d for d in lineage.unconsumed() if not d.startswith("gold.")]
     if unconsumed:
-        lines += ["", "Written but not read by any task (kept for lineage and debugging): "
-                  + ", ".join(f"`{d}`" for d in unconsumed) + "."]
+        lines += [
+            "",
+            "Written but not read by any task (kept for lineage and debugging): "
+            + ", ".join(f"`{d}`" for d in unconsumed)
+            + ".",
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -210,8 +230,9 @@ def main(argv: list[str] | None = None) -> int:
             (out / name).write_text(content)
         print(f"wrote {', '.join(str(out / n) for n in files)}")
         return 0
-    stale = [name for name, content in files.items()
-             if not (out / name).exists() or (out / name).read_text() != content]
+    stale = [
+        name for name, content in files.items() if not (out / name).exists() or (out / name).read_text() != content
+    ]
     if stale:
         print(f"{', '.join(stale)} out of date; run `make lineage` and commit the result", file=sys.stderr)
         return 1

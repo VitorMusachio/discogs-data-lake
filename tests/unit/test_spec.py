@@ -60,35 +60,62 @@ def bronze(tasks):
     return {"layer": "bronze", "schedule": "@daily", "tasks": tasks}
 
 
-@pytest.mark.parametrize("body, message", [
-    (bronze({"a": {"operator": "nope"}}), "unknown operator 'nope'"),
-    (bronze({"a": {"operator": "discogs_api"}}), "requires `collector`"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "xyz"}}), "unknown collector"),
-    (bronze({"a": {"operator": "spark_gold"}}), "does not fit the bronze layer"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]}}), "upstream 'b' does not exist"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]},
-             "b": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["a"]}}), "task cycle"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "checks": {"foo": 1}}}), "unknown checks"),
-    ({"layer": "platinum", "tasks": {}}, "`layer` must be one of"),
-])
+@pytest.mark.parametrize(
+    "body, message",
+    [
+        (bronze({"a": {"operator": "nope"}}), "unknown operator 'nope'"),
+        (bronze({"a": {"operator": "discogs_api"}}), "requires `collector`"),
+        (bronze({"a": {"operator": "discogs_api", "collector": "xyz"}}), "unknown collector"),
+        (bronze({"a": {"operator": "spark_gold"}}), "does not fit the bronze layer"),
+        (
+            bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]}}),
+            "upstream 'b' does not exist",
+        ),
+        (
+            bronze(
+                {
+                    "a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]},
+                    "b": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["a"]},
+                }
+            ),
+            "task cycle",
+        ),
+        (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "checks": {"foo": 1}}}), "unknown checks"),
+        ({"layer": "platinum", "tasks": {}}, "`layer` must be one of"),
+    ],
+)
 def test_invalid_dag_specs(tmp_path, body, message):
     with pytest.raises(SpecError, match=message):
         parse_dag(tmp_path / "x.yml", body)
 
 
 def test_upstream_dag_must_exist(tmp_path):
-    write(tmp_path, "s", {"layer": "silver", "schedule": {"after": ["ghost"]},
-                          "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
-                          "tasks": {"t": {"operator": "spark_silver"}}})
+    write(
+        tmp_path,
+        "s",
+        {
+            "layer": "silver",
+            "schedule": {"after": ["ghost"]},
+            "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
+            "tasks": {"t": {"operator": "spark_silver"}},
+        },
+    )
     sql(tmp_path, "silver/t.sql", "SELECT data.id FROM bronze_a")
     with pytest.raises(SpecError, match="upstream DAG 'ghost' does not exist"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
 
 
 def test_silver_sql_must_read_declared_sources(tmp_path):
-    write(tmp_path, "s", {"layer": "silver", "schedule": None,
-                          "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
-                          "tasks": {"t": {"operator": "spark_silver"}}})
+    write(
+        tmp_path,
+        "s",
+        {
+            "layer": "silver",
+            "schedule": None,
+            "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
+            "tasks": {"t": {"operator": "spark_silver"}},
+        },
+    )
     sql(tmp_path, "silver/t.sql", "SELECT * FROM bronze_b")
     with pytest.raises(SpecError, match="sources not declared"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
@@ -108,7 +135,10 @@ def test_missing_sql_file(tmp_path):
 
 
 def test_source_needs_exactly_one_schema(tmp_path):
-    body = {"layer": "silver", "tasks": {"t": {"operator": "spark_silver"}},
-            "sources": {"bronze_a": {"path": "x", "schema": "a INT", "data_schema": "b INT"}}}
+    body = {
+        "layer": "silver",
+        "tasks": {"t": {"operator": "spark_silver"}},
+        "sources": {"bronze_a": {"path": "x", "schema": "a INT", "data_schema": "b INT"}},
+    }
     with pytest.raises(SpecError, match="exactly one of"):
         parse_dag(tmp_path / "x.yml", body)

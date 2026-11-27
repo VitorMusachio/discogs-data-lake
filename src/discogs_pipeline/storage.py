@@ -9,10 +9,12 @@ Layout:
 
 from __future__ import annotations
 
+import contextlib
 import json
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable, Protocol
+from typing import Any, Protocol
 
 
 class Lake(Protocol):
@@ -49,21 +51,26 @@ class S3Lake:
         overwrite deletes the destination folder as a single object. Emptying it here first avoids that.
         """
         prefix = prefix.strip("/")
-        keys = [o["Key"] for o in self.client.get_paginator("list_objects_v2")
-                .paginate(Bucket=self.bucket, Prefix=prefix + "/").search("Contents") if o]
+        keys = [
+            o["Key"]
+            for o in self.client.get_paginator("list_objects_v2")
+            .paginate(Bucket=self.bucket, Prefix=prefix + "/")
+            .search("Contents")
+            if o
+        ]
         for i in range(0, len(keys), 1000):
-            self.client.delete_objects(Bucket=self.bucket,
-                                       Delete={"Objects": [{"Key": k} for k in keys[i:i + 1000]], "Quiet": True})
+            self.client.delete_objects(
+                Bucket=self.bucket, Delete={"Objects": [{"Key": k} for k in keys[i : i + 1000]], "Quiet": True}
+            )
         folders = {prefix}
         for key in keys:
             parts = key.split("/")[:-1]
             folders.update("/".join(parts[:n]) for n in range(len(prefix.split("/")), len(parts) + 1))
         for folder in sorted(folders, key=lambda f: f.count("/"), reverse=True):
             for name in (folder + "/", folder):
-                try:
+                # a folder may already be gone or never have been materialized
+                with contextlib.suppress(self.client.exceptions.ClientError):
                     self.client.delete_object(Bucket=self.bucket, Key=name)
-                except self.client.exceptions.ClientError:
-                    pass  # folder already gone or never materialized
         return len(keys)
 
 
@@ -93,7 +100,7 @@ def bronze_key(entity: str, ds: str) -> str:
 
 def write_bronze(lake: Lake, entity: str, ds: str, records: Iterable[dict[str, Any]]) -> int:
     """Write records (envelope + raw payload) as JSON Lines. Writing the same day again overwrites it."""
-    ingested_at = datetime.now(timezone.utc).isoformat()
+    ingested_at = datetime.now(UTC).isoformat()
     lines = [json.dumps({"ingested_at": ingested_at, **rec}, ensure_ascii=False) for rec in records]
     lake.put_bytes(bronze_key(entity, ds), ("\n".join(lines) + "\n" if lines else "").encode())
     return len(lines)

@@ -1,4 +1,4 @@
-"""Publish gold tables in Trino (catalog `lakehouse`, schema `gold` by default) as external tables in the Hive Metastore.
+"""Publish gold tables in Trino (catalog `lakehouse`, schema `gold` by default) as external Hive Metastore tables.
 
 Spark only writes Parquet; Trino registers the table using the DataFrame schema.
 Locations use s3a:// because the Hive Metastore (Hadoop) only knows that scheme; Trino accepts both.
@@ -32,8 +32,9 @@ def trino_type(dt: T.DataType) -> str:
     raise TypeError(f"No Trino mapping for type: {dt}")
 
 
-def create_table_sql(table: str, schema: T.StructType, location: str, partition_col: str | None,
-                     target_schema: str = "gold") -> str:
+def create_table_sql(
+    table: str, schema: T.StructType, location: str, partition_col: str | None, target_schema: str = "gold"
+) -> str:
     fields = [f for f in schema.fields if f.name != partition_col]
     if partition_col:
         fields.append(schema[partition_col])  # Hive requires partition columns last
@@ -50,8 +51,7 @@ class TrinoRegistrar:
 
         self.schema = schema
         self.conn = trino.dbapi.connect(host=host, port=port, user="airflow", catalog=CATALOG)
-        self._exec(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{schema} "
-                   f"WITH (location = 's3a://{bucket}/gold/')")
+        self._exec(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{schema} WITH (location = 's3a://{bucket}/gold/')")
 
     def query(self, sql: str) -> list:
         cur = self.conn.cursor()

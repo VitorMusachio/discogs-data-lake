@@ -36,4 +36,6 @@ class DiscogsApiOperator(LakeOperator):
         from ..tracking import load_config
 
         client = DiscogsClient(settings.discogs_token, settings.user_agent)
-        return get_collector(self.collector)(client, lake_from_settings(settings), load_config(settings.pipeline_config), ds)
+        return get_collector(self.collector)(
+            client, lake_from_settings(settings), load_config(settings.pipeline_config), ds
+        )

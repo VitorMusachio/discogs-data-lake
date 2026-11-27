@@ -39,8 +39,15 @@ class SparkSqlOperator(LakeOperator):
 
         spark = create_spark(f"{self.layer}-{self.task_spec.task_id}", settings)
         try:
-            result = run_sql_task(spark, settings.lake_root, settings.sql_dir, self.dag_spec, self.task_spec, ds,
-                                  clear_location=self._clearer(settings))
+            result = run_sql_task(
+                spark,
+                settings.lake_root,
+                settings.sql_dir,
+                self.dag_spec,
+                self.task_spec,
+                ds,
+                clear_location=self._clearer(settings),
+            )
             self.publish(result, settings)
             return {"table": result.table, "rows": result.rows, "location": result.location}
         finally:

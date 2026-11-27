@@ -13,10 +13,10 @@ SELECT data.id                       AS id_release,
        data.released                 AS ds_released,
        -- '1991-09-24' becomes a date; '1991' and '1991-00-00' become null
        CASE WHEN data.released RLIKE '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' AND data.released NOT LIKE '%-00%'
-            THEN to_date(data.released) END AS dt_released,
+            THEN TO_DATE(data.released) END AS dt_released,
        data.community.have           AS qt_have,
        data.community.want           AS qt_want,
        data.community.rating.average AS vl_rating_avg,
        data.community.rating.count   AS qt_rating,
-       to_timestamp(data.date_changed) AS ts_changed
+       TO_TIMESTAMP(data.date_changed) AS ts_changed
 FROM bronze_releases

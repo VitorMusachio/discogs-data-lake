@@ -27,7 +27,9 @@ def bronze_lines(lake, entity):
 
 def test_load_config_ignores_placeholder_username(tmp_path):
     cfg = tmp_path / "t.yml"
-    cfg.write_text("usernames: [your_username_here, vitor]\ndiscovery: [{year: 1991}]\nlimits: {max_tracked_releases: 7}\n")
+    cfg.write_text(
+        "usernames: [your_username_here, vitor]\ndiscovery: [{year: 1991}]\nlimits: {max_tracked_releases: 7}\n"
+    )
     config = load_config(cfg)
     assert config.usernames == ["vitor"]
     assert config.max_tracked_releases == 7
@@ -57,7 +59,13 @@ def test_search_results_only_yield_release_ids():
 def test_seed_to_search_params():
     seed = {"year": 1991, "genre": "Rock", "pages": 2}
     assert seed_origin(seed) == "discovery:1991-Rock"
-    assert search_params(seed) == {"year": 1991, "genre": "Rock", "type": "release", "sort": "want", "sort_order": "desc"}
+    assert search_params(seed) == {
+        "year": 1991,
+        "genre": "Rock",
+        "type": "release",
+        "sort": "want",
+        "sort_order": "desc",
+    }
 
 
 def test_discovery_respects_tracking_cap(lake):
@@ -70,10 +78,12 @@ def test_discovery_respects_tracking_cap(lake):
 
 
 def test_user_lists_track_their_releases(lake):
-    client = FakeClient(pages={
-        "/users/vitor/collection/folders/0/releases": [{"id": 5, "instance_id": 1}, {"id": 5, "instance_id": 2}],
-        "/users/vitor/wants": [{"id": 6}],
-    })
+    client = FakeClient(
+        pages={
+            "/users/vitor/collection/folders/0/releases": [{"id": 5, "instance_id": 1}, {"id": 5, "instance_id": 2}],
+            "/users/vitor/wants": [{"id": 6}],
+        }
+    )
     run_user_lists(client, lake, TrackingConfig(usernames=["vitor"]), DS)
     assert TrackedReleases(lake).data["5"]["origin"] == "collection:vitor"
     assert TrackedReleases(lake).data["6"]["origin"] == "wantlist:vitor"
@@ -85,11 +95,13 @@ def test_snapshot_fetches_release_and_usd_stats(lake):
     tracked.add(1, "x", DS)
     tracked.add(2, "x", DS)
     tracked.save()
-    client = FakeClient(routes={
-        "/releases/1": release(1),
-        "/marketplace/stats/1": {"lowest_price": {"value": 9.5, "currency": "USD"}, "num_for_sale": 3},
-        # release 2 was removed from Discogs (404)
-    })
+    client = FakeClient(
+        routes={
+            "/releases/1": release(1),
+            "/marketplace/stats/1": {"lowest_price": {"value": 9.5, "currency": "USD"}, "num_for_sale": 3},
+            # release 2 was removed from Discogs (404)
+        }
+    )
     out = run_snapshot(client, lake, TrackingConfig(), DS)
     assert out == {"tracked": 2, "releases": 1, "stats": 1, "failed": 0}
 
@@ -111,8 +123,11 @@ def test_entity_ids_skip_placeholders():
 
 def test_new_entities_are_fetched_once(lake):
     write_bronze(lake, "releases", DS, [{"id": 1, "data": release(1)}])
-    routes = {"/artists/1": {"id": 1, "name": "Nirvana"}, "/labels/895": {"id": 895, "name": "DGC"},
-              "/masters/13814": {"id": 13814, "title": "Nevermind"}}
+    routes = {
+        "/artists/1": {"id": 1, "name": "Nirvana"},
+        "/labels/895": {"id": 895, "name": "DGC"},
+        "/masters/13814": {"id": 13814, "title": "Nevermind"},
+    }
     client = FakeClient(routes=routes)
     assert run_new_entities(client, lake, TrackingConfig(), DS) == {"artists": 1, "labels": 1, "masters": 1}
     assert KnownEntities(lake).unknown("artists", {1, 2}) == [2]

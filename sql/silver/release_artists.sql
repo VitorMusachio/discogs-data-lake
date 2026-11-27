@@ -4,6 +4,6 @@ SELECT r.data.id                              AS id_release,
        pos + 1                                AS nr_position,
        COALESCE(NULLIF(a.anv, ''), a.name)    AS nm_artist_credit,
        NULLIF(a.`join`, '')                   AS ds_join
-FROM bronze_releases r
+FROM bronze_releases AS r
 LATERAL VIEW POSEXPLODE(r.data.artists) x AS pos, a
 WHERE a.id > 0

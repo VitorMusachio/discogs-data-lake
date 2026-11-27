@@ -1,40 +1,41 @@
 # Discogs Data Lake
 
-Lakehouse local com dados da [API do Discogs](https://www.discogs.com/developers/), organizado em camadas
-**Bronze → Silver → Gold**. A peça central é um **snapshot diário** de demanda (`have`/`want`) e preço
-(menor oferta em USD) de um conjunto de releases acompanhados. Isso permite ver tendências ao longo do tempo,
-além de coleções e wantlists de usuários.
+[![CI](https://github.com/VitorMusachio/discogs-data-lake/actions/workflows/ci.yml/badge.svg)](https://github.com/VitorMusachio/discogs-data-lake/actions/workflows/ci.yml)
 
-As DAGs são **declarativas**: cada arquivo em `pipelines/*.yml` vira uma DAG do Airflow. Ali ficam o
-agendamento, a DAG upstream, as tarefas, o operador de cada uma e os checks de qualidade. Na silver e na gold,
-cada tarefa gera uma tabela a partir de um arquivo SQL.
+A local lakehouse built on [Discogs API](https://www.discogs.com/developers/) data, organized in
+**Bronze → Silver → Gold** layers. Its core is a **daily snapshot** of demand (`have`/`want`) and price (lowest offer
+in USD) for a set of tracked releases, which makes trends over time visible, plus users' collections and wantlists.
 
-## Ferramentas
+DAGs are **declarative**: each file in `pipelines/*.yml` becomes an Airflow DAG. It holds the schedule, the upstream
+DAGs, the tasks, the operator for each task and its quality checks. In silver and gold, each task builds one table from
+a SQL file. A generated **lineage** keeps cross-DAG dependencies consistent, and CI fails when they are not.
+
+## Tools
 
 <table>
   <tr>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apacheairflow" width="40" height="40" alt="Apache Airflow"/><br/><b>Airflow 2.9</b><br/><sub>orquestração</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachespark" width="40" height="40" alt="Apache Spark"/><br/><b>Spark 3.5</b><br/><sub>transformação</sub></td>
-    <td align="center" width="110"><img src="https://raw.githubusercontent.com/seaweedfs/seaweedfs/master/note/seaweedfs.svg" width="40" height="40" alt="SeaweedFS"/><br/><b>SeaweedFS</b><br/><sub>armazenamento S3</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachehive" width="40" height="40" alt="Apache Hive"/><br/><b>Hive Metastore 4</b><br/><sub>catálogo</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/trino" width="40" height="40" alt="Trino"/><br/><b>Trino</b><br/><sub>consulta SQL</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apacheairflow" width="40" height="40" alt="Apache Airflow"/><br/><b>Airflow 2.9</b><br/><sub>orchestration</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachespark" width="40" height="40" alt="Apache Spark"/><br/><b>Spark 3.5</b><br/><sub>transformation</sub></td>
+    <td align="center" width="110"><img src="https://raw.githubusercontent.com/seaweedfs/seaweedfs/master/note/seaweedfs.svg" width="40" height="40" alt="SeaweedFS"/><br/><b>SeaweedFS</b><br/><sub>S3 storage</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachehive" width="40" height="40" alt="Apache Hive"/><br/><b>Hive Metastore 4</b><br/><sub>catalog</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/trino" width="40" height="40" alt="Trino"/><br/><b>Trino</b><br/><sub>SQL queries</sub></td>
   </tr>
   <tr>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/metabase" width="40" height="40" alt="Metabase"/><br/><b>Metabase</b><br/><sub>visualização</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/postgresql" width="40" height="40" alt="PostgreSQL"/><br/><b>PostgreSQL 16</b><br/><sub>metadados</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/python" width="40" height="40" alt="Python"/><br/><b>Python 3.11</b><br/><sub>coleta e operadores</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/docker" width="40" height="40" alt="Docker"/><br/><b>Docker Compose</b><br/><sub>ambiente local</sub></td>
-    <td align="center" width="110"><b>API Discogs</b><br/><sub>fonte de dados</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/metabase" width="40" height="40" alt="Metabase"/><br/><b>Metabase</b><br/><sub>visualization</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/postgresql" width="40" height="40" alt="PostgreSQL"/><br/><b>PostgreSQL 16</b><br/><sub>metadata</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/python" width="40" height="40" alt="Python"/><br/><b>Python 3.11</b><br/><sub>ingestion and operators</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/docker" width="40" height="40" alt="Docker"/><br/><b>Docker Compose</b><br/><sub>local environment</sub></td>
+    <td align="center" width="110"><img src="https://cdn.simpleicons.org/githubactions" width="40" height="40" alt="GitHub Actions"/><br/><b>GitHub Actions</b><br/><sub>CI</sub></td>
   </tr>
 </table>
 
-## Arquitetura
+## Architecture
 
 ```mermaid
 flowchart LR
-    api(["API do Discogs<br/>60 req/min"])
+    api(["Discogs API<br/>60 req/min"])
 
-    subgraph airflow["Apache Airflow — DAGs geradas de pipelines/*.yml"]
+    subgraph airflow["Apache Airflow — DAGs built from pipelines/*.yml"]
         direction TB
         b["bronze_discogs_daily<br/>DiscogsApiOperator"]
         s["silver_discogs<br/>SparkSilverOperator + sql/silver"]
@@ -42,11 +43,11 @@ flowchart LR
         b -- dataset --> s -- dataset --> g
     end
 
-    subgraph s3["SeaweedFS (API S3) — bucket lakehouse"]
+    subgraph s3["SeaweedFS (S3 API) — bucket lakehouse"]
         direction TB
-        bz[("bronze/<br/>JSON cru por dia")]
-        sv[("silver/<br/>Parquet por dia")]
-        gd[("gold/<br/>Parquet modelado")]
+        bz[("bronze/<br/>raw JSON per day")]
+        sv[("silver/<br/>Parquet per day")]
+        gd[("gold/<br/>modeled Parquet")]
     end
 
     pg[("PostgreSQL<br/>Airflow + metastore")]
@@ -58,14 +59,14 @@ flowchart LR
     b --> bz
     bz --> s --> sv
     sv --> g --> gd
-    g -- registra tabelas --> trino
+    g -- registers tables --> trino
     trino <--> hms --> pg
-    airflow -. metadados .-> pg
-    trino -- lê Parquet --> gd
+    airflow -. metadata .-> pg
+    trino -- reads Parquet --> gd
     mb --> trino
 ```
 
-### Camadas e DAGs
+### Layers and DAGs
 
 ```mermaid
 flowchart LR
@@ -76,159 +77,180 @@ flowchart LR
     end
     ctl --> sn
     ul --> ctl
-    daily -- "lakehouse://bronze_discogs_daily" --> silver["silver_discogs<br/>10 tabelas, 1 SQL cada"]
-    silver -- "lakehouse://silver_discogs" --> gold["gold_discogs<br/>11 tabelas, 1 SQL cada"]
+    daily -- "lakehouse://bronze_discogs_daily" --> silver["silver_discogs<br/>10 tables, 1 SQL each"]
+    silver -- "lakehouse://silver_discogs" --> gold["gold_discogs<br/>11 tables, 1 SQL each"]
 ```
 
-- **Bronze** (`DiscogsApiOperator`): ingestão pela API, sem SQL. O YAML escolhe o coletor (`discovery`,
-  `user_lists`, `snapshot`, `new_entities`). Cada execução grava o JSON cru em `bronze/<entidade>/dt=<ds>/`.
-- **Silver** (`SparkSilverOperator`): cada tarefa lê as fontes `bronze_*` citadas no seu SQL, usando o schema
-  declarado no YAML, e grava `silver/<tabela>/dt=<ds>/`. Roda quando a bronze termina e processa a mesma data.
-- **Gold** (`SparkGoldOperator`): cada tarefa lê as tabelas `silver_*` citadas no SQL, reconstrói
-  `gold/<tabela>/` e registra a tabela no Trino (`lakehouse.gold`) como tabela externa no Hive Metastore.
-- Os dois operadores Spark compartilham a mesma base (`SparkSqlOperator`): sessão Spark, execução do SQL,
-  gravação e checks. Cada subclasse muda só o que é próprio da camada.
-- **Armazenamento**: o SeaweedFS expõe uma API S3 compatível. O MinIO, usado antes, deixou de publicar imagens
-  públicas. O Spark grava com o committer `directory` do S3A, porque o commit padrão depende de *rename*, que no S3
-  é uma cópia e falha no SeaweedFS.
+- **Bronze** (`DiscogsApiOperator`): API ingestion, no SQL. The YAML picks the collector (`discovery`, `user_lists`,
+  `snapshot`, `new_entities`). Each run writes raw JSON to `bronze/<entity>/dt=<ds>/`.
+- **Silver** (`SparkSilverOperator`): each task reads the `bronze_*` sources its SQL cites, with the schema declared in
+  the YAML, and writes `silver/<table>/dt=<ds>/`. It runs when bronze finishes and processes the same date.
+- **Gold** (`SparkGoldOperator`): each task reads the `silver_*` tables its SQL cites, rebuilds `gold/<table>/` and
+  registers it in Trino (`lakehouse.gold`) as an external Hive Metastore table.
+- Both Spark operators share one base (`SparkSqlOperator`): Spark session, running the SQL, writing and checks. Each
+  subclass only changes what is specific to its layer.
+- **Storage**: SeaweedFS provides an S3-compatible API (MinIO, used before, stopped publishing public images). Spark
+  writes with the S3A `directory` committer, because the default commit relies on *rename*, which on S3 is a copy and
+  fails on SeaweedFS.
 
-## Estrutura
+### Lineage
+
+[`docs/lineage.md`](docs/lineage.md) (and `docs/lineage.json`) is generated from the YAML and SQL. It shows the producer,
+upstream and downstream of every dataset. The same build enforces three rules:
+
+1. every dataset a task reads has a producer;
+2. each silver/gold table has exactly one writer;
+3. some producer of every input runs first: in an upstream DAG reachable through `schedule.after`, or in an upstream
+   task of the same DAG.
+
+A broken rule stops the DAG factory (an import error in Airflow), `make lineage-check` and CI. The pre-commit hook
+regenerates the docs whenever `pipelines/` or `sql/` change. CI fails if the committed copy is stale.
+
+## Repository layout
 
 ```
-pipelines/                 uma DAG por arquivo YAML
+pipelines/                 one DAG per YAML file
   bronze_discogs_discovery.yml
   bronze_discogs_daily.yml
-  silver_discogs.yml       fontes bronze (schemas) + tabelas
+  silver_discogs.yml       bronze sources (schemas) + tables
   gold_discogs.yml
 sql/
-  silver/<tabela>.sql      uma tabela por arquivo
-  gold/<tabela>.sql
-dags/pipelines.py          lê pipelines/*.yml e cria as DAGs (não precisa ser editado)
+  silver/<table>.sql       one table per file
+  gold/<table>.sql
+dags/pipelines.py          reads pipelines/*.yml and builds the DAGs (no need to edit)
 src/discogs_pipeline/
-  spec.py                  leitura e validação dos YAML (sem Airflow)
-  dag_factory.py           YAML -> DAG do Airflow
-  operators/               um operador por tipo de transformação
-    base.py                LakeOperator: configuração e data da partição
+  spec.py                  YAML parsing and validation (no Airflow)
+  lineage.py               table-level lineage, dependency rules, docs/lineage.*
+  dag_factory.py           YAML -> Airflow DAG
+  operators/               one operator per kind of transformation
+    base.py                LakeOperator: settings and partition date
     ingestion.py           DiscogsApiOperator (bronze)
     spark.py               SparkSqlOperator -> SparkSilverOperator / SparkGoldOperator
-  transform.py             núcleo Spark: registra views, executa SQL, grava, roda checks
-  collectors/              coletores da API (discovery, users, snapshot, entities)
-  api.py                   cliente com rate limit, novas tentativas e paginação
-config/tracking.yml        usernames, sementes de discovery e limites
-tests/unit                 sem Docker (Spark local)
-tests/integration          dentro do container do Airflow, com a stack no ar
+  transform.py             Spark core: register views, run SQL, write, run checks
+  collectors/              API collectors (discovery, users, snapshot, entities)
+  api.py                   client with rate limiting, retries and pagination
+config/tracking.yml        usernames, discovery seeds and limits
+docs/lineage.{md,json}     generated lineage
+tests/unit                 no Docker (local Spark)
+tests/integration          inside the Airflow container, with the stack up
+AGENTS.md, CLAUDE.md       rules for coding agents; .claude/rules and .claude/skills
 ```
 
-## Declarando uma DAG
+## Declaring a DAG
 
 ```yaml
 # pipelines/gold_discogs.yml
 dag_id: gold_discogs
 layer: gold                      # bronze | silver | gold
 schedule:
-  after: [silver_discogs]        # roda quando essa DAG termina (dataset); ou "@daily", cron, null
-max_active_tasks: 2              # cada tarefa Spark abre uma JVM
+  after: [silver_discogs]        # runs when that DAG finishes (dataset); or "@daily", cron, null
+max_active_tasks: 2              # each Spark task starts its own JVM
 tasks:
   fact_release_snapshot:
     operator: spark_gold         # discogs_api | spark_silver | spark_gold
-    sql: gold/fact_release_snapshot.sql   # opcional: o padrão é <layer>/<tarefa>.sql
+    sql: gold/fact_release_snapshot.sql   # optional: defaults to <layer>/<task>.sql
     partition_by: dt_snapshot
-    upstream: []                 # tarefas da mesma DAG
+    upstream: []                 # tasks in the same DAG
     checks: {unique: [id_release, dt_snapshot], not_null: [id_release], min_rows: 1}
 ```
 
-**Nova tabela:** crie `sql/<camada>/<nome>.sql` e acrescente a tarefa no YAML da camada.
+**New table:** create `sql/<layer>/<name>.sql`, add the task to the layer's YAML, then run `make lineage`.
 
-A validação roda quando o Airflow lê as DAGs e nos testes. Uma DAG com erro aparece como *import error* no
-Airflow, em vez de quebrar em execução. A validação confere:
-- se o operador existe e serve para a camada;
-- se os parâmetros obrigatórios foram informados;
-- se o `upstream` existe e não forma ciclo;
-- se a DAG de `after` existe e se o arquivo SQL existe;
-- se toda view citada no SQL (`bronze_*` ou `silver_*`) foi declarada.
+Validation runs when Airflow parses the DAGs and in the tests, so a broken DAG shows up as an import error instead of
+failing at runtime. It checks:
+- the operator exists and fits the layer, and its required parameters are set;
+- `upstream` tasks exist and form no cycle;
+- the DAGs in `after` exist, and so do the SQL files;
+- every view the SQL reads (`bronze_*` / `silver_*`) is declared.
 
-## Modelo Gold
+## Gold model
 
-| Tabela | Grão | Origem |
+| Table | Grain | Source |
 |---|---|---|
-| `fact_release_snapshot` | release × dia (partição `dt_snapshot`) | `community.have/want`, `rating`; `marketplace/stats` (`vl_lowest_price_usd`, `qt_for_sale`). Preço nulo = nada à venda |
-| `dim_release` | release | atributos; gênero, estilo e formato = **primeiro valor** da lista |
-| `dim_master` | master (agrupa edições) | `/masters/{id}`; nem todo release tem master: use `LEFT JOIN` |
-| `dim_artist`, `dim_label` | artista, gravadora | `/artists/{id}`, `/labels/{id}` (com gravadora-mãe) |
-| `bridge_release_artist` | release × artista | `artists[]` do release, com posição no crédito |
-| `dim_track` | release × faixa | `tracklist[]`, duração em segundos; títulos de lado são removidos |
-| `fact_collection_item` | cópia na coleção (`id_instance`) | estado atual por usuário |
-| `fact_wantlist_item` | release na wantlist | estado atual por usuário |
-| `ctl_tracked_release` | release acompanhado | origem (`discovery:…`, `collection:…`, `wantlist:…`) |
-| `dim_date` | dia | calendário do período com snapshots |
+| `fact_release_snapshot` | release × day (partition `dt_snapshot`) | `community.have/want`, `rating`; `marketplace/stats` (`vl_lowest_price_usd`, `qt_for_sale`). Null price = nothing for sale |
+| `dim_release` | release | attributes; genre, style and format = **first value** of the list |
+| `dim_master` | master (groups editions) | `/masters/{id}`; not every release has a master: use `LEFT JOIN` |
+| `dim_artist`, `dim_label` | artist, label | `/artists/{id}`, `/labels/{id}` (with parent label) |
+| `bridge_release_artist` | release × artist | the release's `artists[]`, with credit position |
+| `dim_track` | release × track | `tracklist[]`, duration in seconds; side headings are removed |
+| `fact_collection_item` | copy in a collection (`id_instance`) | current state per user |
+| `fact_wantlist_item` | release in a wantlist | current state per user |
+| `ctl_tracked_release` | tracked release | origin (`discovery:…`, `collection:…`, `wantlist:…`) |
+| `dim_date` | day | calendar for the period with snapshots |
 
-Prefixos de coluna: `id_` chave, `dt_` data, `ts_` timestamp, `qt_` quantidade, `vl_` valor, `nm_` nome,
-`ds_` descrição, `nr_` número, `cd_` código, `fl_` booleano.
+Column prefixes: `id_` key, `dt_` date, `ts_` timestamp, `qt_` quantity, `vl_` value, `nm_` name, `ds_` description,
+`nr_` number, `cd_` code, `fl_` boolean.
 
-**Como a coleta funciona:**
-- **Discovery**: a busca do Discogs só devolve IDs de *release*. Artistas, gravadoras e masters saem do
-  detalhe de cada release e são coletados uma única vez.
-- **Conjunto acompanhado**: a discovery e as listas de usuários só *acrescentam* releases. Nenhum sai, então
-  as séries históricas ficam completas.
-- **Custo**: 2 chamadas por release por dia. Com o limite de 60 req/min, 500 releases levam cerca de 17 minutos.
-- **Falhas**: falhas pontuais ficam para o dia seguinte. Se passarem de `max_failure_ratio`, a tarefa falha.
+**How ingestion works:**
+- **Discovery**: Discogs search only returns *release* IDs. Artists, labels and masters come from each release's
+  detail and are collected once.
+- **Tracked set**: discovery and user lists only *add* releases. Nothing leaves, so the time series stay complete.
+- **Cost**: 2 calls per tracked release per day. At 60 req/min, 500 releases take about 17 minutes.
+- **Failures**: occasional failures are retried the next day. Above `max_failure_ratio`, the task fails.
 
-## Executando
+## Running
 
-1. Crie o `.env` e preencha `DISCOGS_TOKEN` (de <https://www.discogs.com/settings/developers>) e as senhas:
+1. Create `.env` and fill in `DISCOGS_TOKEN` (from <https://www.discogs.com/settings/developers>) and the passwords:
    ```bash
    cp .env.example .env
    ```
-2. Ajuste `config/tracking.yml`: usernames, sementes de discovery e limites.
-3. Suba a stack (a primeira build baixa ~5 GB de imagens):
+2. Adjust `config/tracking.yml`: usernames, discovery seeds and limits.
+3. Start the stack (the first build pulls about 5 GB of images):
    ```bash
-   docker compose up -d --build
+   make up
    ```
-4. No Airflow (<http://localhost:8080>, ou a porta de `AIRFLOW_PORT`, com o usuário e a senha do `.env`):
-   1. Despause e rode `bronze_discogs_discovery` uma vez.
-   2. Despause `bronze_discogs_daily`, `silver_discogs` e `gold_discogs`. A silver e a gold disparam sozinhas
-      quando a camada anterior termina. Para reprocessar um dia, dispare a silver com o conf `{"ds": "AAAA-MM-DD"}`.
-5. Consulte:
-   - **Trino**: `localhost:8081`, catálogo `lakehouse`, schema `gold`.
-   - **Metabase**: <http://localhost:3000>. Adicione um banco **Starburst** com host `trino`, porta `8080`,
-     catálogo `lakehouse` e schema `gold`.
-   - **SeaweedFS**: API S3 em `localhost:8333` e navegador de arquivos em <http://localhost:8888/buckets/lakehouse/>.
+4. In Airflow (<http://localhost:8080>, or the `AIRFLOW_PORT` port; log in with the `.env` credentials):
+   1. Unpause `bronze_discogs_discovery` and run it once.
+   2. Unpause `bronze_discogs_daily`, `silver_discogs` and `gold_discogs`. Silver and gold start on their own when the
+      previous layer finishes. To reprocess a day, trigger silver with the conf `{"ds": "YYYY-MM-DD"}`.
+5. Query:
+   - **Trino**: `localhost:8081`, catalog `lakehouse`, schema `gold`.
+   - **Metabase**: <http://localhost:3000>. Add a **Starburst** database with host `trino`, port `8080`, catalog
+     `lakehouse` and schema `gold`.
+   - **SeaweedFS**: S3 API on `localhost:8333`, file browser at <http://localhost:8888/buckets/lakehouse/>.
 
 ```sql
--- Releases cuja demanda mais cresceu nos últimos 30 dias
+-- Releases whose demand grew the most in the last 30 days
 SELECT r.ds_title, a.nm_artist_credit,
-       MAX_BY(s.qt_want, s.dt_snapshot) - MIN_BY(s.qt_want, s.dt_snapshot) AS ganho_want
+       MAX_BY(s.qt_want, s.dt_snapshot) - MIN_BY(s.qt_want, s.dt_snapshot) AS want_gain
 FROM lakehouse.gold.fact_release_snapshot s
 JOIN lakehouse.gold.dim_release r USING (id_release)
 LEFT JOIN lakehouse.gold.bridge_release_artist a ON a.id_release = s.id_release AND a.nr_position = 1
 WHERE s.dt_snapshot >= current_date - INTERVAL '30' DAY
 GROUP BY 1, 2
-ORDER BY ganho_want DESC
+ORDER BY want_gain DESC
 LIMIT 20;
 ```
 
-## Testes
-
-**Unitários** (sem Docker; o Spark local precisa de Java 17+). Cobrem o cliente da API, os coletores, a
-validação dos YAML e a silver e a gold de ponta a ponta com os YAML e SQL reais, incluindo os checks e o DDL do Trino:
+## Development
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install pyspark==3.5.1 boto3 requests pyyaml pytest trino
+make install           # .venv with dev dependencies + pre-commit hooks
+make check             # lint + lineage-check + unit tests (same as CI)
+make format            # ruff + sqlfluff auto-fix
+make lineage           # regenerate docs/lineage.* after changing pipelines/ or sql/
+make test-integration  # integration tests inside the Airflow container (stack up)
 ```
 
-```bash
-.venv/bin/python -m pytest tests/unit
-```
+**Unit tests** need no Docker; local Spark needs Java 17+. They cover:
+- the API client, the collectors and the YAML validation;
+- the lineage rules;
+- silver and gold end to end with the real YAML and SQL, including the checks and the Trino DDL.
 
-**Integração** (com a stack no ar). Cada execução usa um bucket próprio (`lakehouse-it-<timestamp>`) e o schema `gold_it`, separados dos dados reais e apagados ao final.
-Conferem:
-- se as DAGs carregam sem erro e seguem os YAML (tarefas, dependências, operadores e o encadeamento por datasets);
-- o fluxo completo pelos operadores do Airflow: bronze no S3 → silver → gold → consultas no Trino.
+**Integration tests** need the stack up. Each run uses its own bucket (`lakehouse-it-<timestamp>`) and the `gold_it`
+schema, kept apart from real data and dropped at the end. They check:
+- that the DAGs load without errors and follow the YAML (tasks, dependencies, operators, dataset chaining);
+- the full path through the Airflow operators: bronze in S3 → silver → gold → queries in Trino.
 
-```bash
-docker compose exec airflow-scheduler python -m pytest tests/integration
-```
+**CI** (GitHub Actions) runs lint, the spec and lineage check, and the unit tests on every pull request.
+
+## Contributing
+
+- Open PRs with the template (`.github/pull_request_template.md`: Why? / What? / Tests + checklist).
+- Conventions (naming, layers, checks, tests) are in [`AGENTS.md`](AGENTS.md). Coding agents also get per-area rules in
+  `.claude/rules/` and skills in `.claude/skills/`: `add-table`, `add-collector`, `add-dag`, `impact-analysis`,
+  `backfill`, `run-tests` and `review-pr`.
 
 ---
 
-**Desenvolvido por:** Vitor Musachio
+**Author:** Vitor Musachio

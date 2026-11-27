@@ -8,7 +8,8 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any, Callable, Iterator
+from collections.abc import Callable, Iterator
+from typing import Any
 
 import requests
 
@@ -36,9 +37,7 @@ class DiscogsClient:
         if not token:
             raise DiscogsError("DISCOGS_TOKEN is not set: search and the 60 req/min limit require a token.")
         self.session = session or requests.Session()
-        self.session.headers.update(
-            {"Authorization": f"Discogs token={token}", "User-Agent": user_agent}
-        )
+        self.session.headers.update({"Authorization": f"Discogs token={token}", "User-Agent": user_agent})
         self.min_interval = min_interval
         self.max_retries = max_retries
         self._sleep = sleep
@@ -83,8 +82,9 @@ class DiscogsClient:
             raise DiscogsError(f"HTTP {resp.status_code} on {url}: {resp.text[:200]}")
         raise DiscogsError(f"Retries exhausted on {url}")
 
-    def paginate(self, path: str, key: str, params: dict[str, Any] | None = None,
-                 max_pages: int | None = None) -> Iterator[dict]:
+    def paginate(
+        self, path: str, key: str, params: dict[str, Any] | None = None, max_pages: int | None = None
+    ) -> Iterator[dict]:
         """Iterate the items of a paginated resource (the `key` field of each response)."""
         page = 1
         while True:

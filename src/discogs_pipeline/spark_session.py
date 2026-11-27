@@ -26,11 +26,16 @@ def create_spark(app_name: str, settings=None, master: str = "local[*]") -> Spar
             # The S3A "directory" committer stages files on local disk and only uploads.
             .config("spark.hadoop.fs.s3a.committer.name", "directory")
             .config("spark.hadoop.fs.s3a.committer.staging.conflict-mode", "append")
-            .config("spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a",
-                    "org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory")
-            .config("spark.sql.sources.commitProtocolClass",
-                    "org.apache.spark.internal.io.cloud.PathOutputCommitProtocol")
-            .config("spark.sql.parquet.output.committer.class",
-                    "org.apache.spark.internal.io.cloud.BindingParquetOutputCommitter")
+            .config(
+                "spark.hadoop.mapreduce.outputcommitter.factory.scheme.s3a",
+                "org.apache.hadoop.fs.s3a.commit.S3ACommitterFactory",
+            )
+            .config(
+                "spark.sql.sources.commitProtocolClass", "org.apache.spark.internal.io.cloud.PathOutputCommitProtocol"
+            )
+            .config(
+                "spark.sql.parquet.output.committer.class",
+                "org.apache.spark.internal.io.cloud.BindingParquetOutputCommitter",
+            )
         )
     return builder.getOrCreate()

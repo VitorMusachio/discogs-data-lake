@@ -1,5 +1,6 @@
 """Bronze in S3 (SeaweedFS) -> Airflow silver and gold operators -> tables queryable in Trino."""
 
+import contextlib
 from dataclasses import replace
 
 import pytest
@@ -23,15 +24,15 @@ def lake(it_settings):
     # best-effort cleanup through the same SeaweedFS-safe delete the operators use
     for area in ("bronze", "silver", "gold", "control"):
         lake.delete_prefix(area)
-    try:
+    with contextlib.suppress(Exception):  # the bucket may still hold folder entries
         lake.client.delete_bucket(Bucket=s.bucket)
-    except Exception:  # noqa: BLE001
-        pass
 
 
 @pytest.fixture(scope="module")
 def trino(it_settings, lake):
-    registrar = TrinoRegistrar(it_settings.trino_host, it_settings.trino_port, it_settings.bucket, it_settings.gold_schema)
+    registrar = TrinoRegistrar(
+        it_settings.trino_host, it_settings.trino_port, it_settings.bucket, it_settings.gold_schema
+    )
     yield registrar
     schema = f"lakehouse.{it_settings.gold_schema}"
     for (table,) in registrar.query(f"SHOW TABLES FROM {schema}"):
@@ -60,7 +61,9 @@ def q(trino, sql):
 
 
 def test_silver_writes_daily_partitions_in_s3(pipeline, lake, it_settings):
-    keys = [o["Key"] for o in lake.client.list_objects_v2(Bucket=it_settings.bucket, Prefix="silver/releases/")["Contents"]]
+    keys = [
+        o["Key"] for o in lake.client.list_objects_v2(Bucket=it_settings.bucket, Prefix="silver/releases/")["Contents"]
+    ]
     assert any(f"dt={D1}/" in k for k in keys) and any(f"dt={D2}/" in k for k in keys)
     assert pipeline[f"silver.releases.{D2}"]["rows"] == 2
 
@@ -76,14 +79,17 @@ def test_every_gold_table_is_queryable_in_trino(pipeline, trino, it_settings):
 def test_snapshot_partitions_and_star_join(pipeline, trino):
     parts = q(trino, 'SELECT dt_snapshot FROM {s}."fact_release_snapshot$partitions" ORDER BY 1')
     assert [str(p[0]) for p in parts] == [D1, D2]
-    joined = q(trino, """
+    joined = q(
+        trino,
+        """
         SELECT r.ds_title, a.nm_artist, l.nm_label, s.qt_have, s.vl_lowest_price_usd
         FROM {s}.fact_release_snapshot s
         JOIN {s}.dim_release r ON r.id_release = s.id_release
         JOIN {s}.bridge_release_artist b ON b.id_release = s.id_release AND b.nr_position = 1
         JOIN {s}.dim_artist a ON a.id_artist = b.id_artist
         JOIN {s}.dim_label l ON l.id_label = r.id_label
-        WHERE s.dt_snapshot = DATE '2026-11-27'""")
+        WHERE s.dt_snapshot = DATE '2026-11-27'""",
+    )
     assert len(joined) == 1
     title, artist, label, have, price = joined[0]
     assert (title, artist, label, have) == ("Nevermind", "Nirvana", "DGC", 120)

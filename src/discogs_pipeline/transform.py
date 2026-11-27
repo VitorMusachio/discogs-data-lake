@@ -10,9 +10,9 @@ Operators and tests go through the same path:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -66,8 +66,15 @@ def run_checks(table: str, df: DataFrame, checks: dict) -> None:
             raise DataQualityError(f"{table}: {dupes} duplicate keys on {unique}")
 
 
-def run_sql_task(spark: SparkSession, root: str, sql_dir: str | Path, dag: DagSpec, task: TaskSpec,
-                 ds: str, clear_location: Callable[[str], None] | None = None) -> TableResult:
+def run_sql_task(
+    spark: SparkSession,
+    root: str,
+    sql_dir: str | Path,
+    dag: DagSpec,
+    task: TaskSpec,
+    ds: str,
+    clear_location: Callable[[str], None] | None = None,
+) -> TableResult:
     """Build one table. `clear_location(location)`, when given, empties the destination before Spark writes."""
     sql = (Path(sql_dir) / task.sql).read_text().strip().rstrip(";")
     views = referenced_views(sql)

@@ -4,5 +4,5 @@ SELECT id_release, id_master, id_label, ds_title, nr_year, ds_country, ds_genre,
 FROM (
     SELECT *, ROW_NUMBER() OVER (PARTITION BY id_release ORDER BY dt DESC) AS rn
     FROM silver_releases
-) r
+) AS r
 WHERE rn = 1

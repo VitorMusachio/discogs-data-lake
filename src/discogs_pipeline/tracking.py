@@ -64,7 +64,9 @@ class TrackedReleases:
         return True
 
     def save(self) -> None:
-        lines = [json.dumps({"id_release": int(k), **v}) for k, v in sorted(self.data.items(), key=lambda kv: int(kv[0]))]
+        lines = [
+            json.dumps({"id_release": int(k), **v}) for k, v in sorted(self.data.items(), key=lambda kv: int(kv[0]))
+        ]
         self.lake.put_bytes(TRACKED_KEY, ("\n".join(lines) + "\n").encode())
 
 
