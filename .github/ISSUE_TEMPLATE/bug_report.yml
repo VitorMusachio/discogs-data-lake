@@ -1,0 +1,34 @@
+name: Bug report
+description: Something in the pipeline, the stack or the data is wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the DAG and task, the partition date (ds) and the error or wrong value.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: Commands, DAG run conf, or a Trino query that shows the problem.
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      options: [bronze (API ingestion), silver, gold, infra / docker-compose, docs]
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      render: shell
