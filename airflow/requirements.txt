@@ -1,3 +1,6 @@
+pyspark==3.5.1
 boto3
 requests
-pandas
+pyyaml
+trino
+pytest

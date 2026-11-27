@@ -1,0 +1,25 @@
+# What the pipeline tracks. Edit freely: changes apply from the next run on.
+
+# Discogs users whose collections and wantlists go into gold.
+# Releases from these lists are tracked automatically in the daily snapshot.
+# The collection must be public, or belong to the owner of DISCOGS_TOKEN.
+usernames:
+  - vitormusachio
+
+# Seeds for the bronze_discogs_discovery DAG (manual run).
+# Each item becomes a /database/search?type=release query; each page returns up to 100 releases.
+# Accepted fields: year, genre, style, country, format, pages (default 1), sort (default "want").
+discovery:
+  - year: 1991
+    genre: Rock
+    pages: 1
+  - year: 1997
+    genre: Electronic
+    pages: 1
+
+limits:
+  # Cap on tracked releases. Each one costs 2 calls a day (release + stats);
+  # at 60 calls per minute, 500 releases take about 17 minutes a day.
+  max_tracked_releases: 500
+  # If more than this fraction of a step's calls fail, the Airflow task fails.
+  max_failure_ratio: 0.2

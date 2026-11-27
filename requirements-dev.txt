@@ -1,0 +1,10 @@
+# Local development and CI (the Airflow image installs airflow/requirements.txt instead)
+pyspark==3.5.1
+boto3
+requests
+pyyaml
+trino
+pytest
+ruff==0.17.6
+sqlfluff==4.5.0
+pre-commit

@@ -1,0 +1,15 @@
+[sqlfluff]
+dialect = sparksql
+templater = raw
+max_line_length = 120
+# Layout is left to authors (aligned AS columns are used on purpose); keep the rules that catch real issues.
+exclude_rules = layout.spacing, layout.indent, layout.long_lines, layout.cte_bracket, layout.cte_newline, layout.keyword_newline, layout.select_targets, structure.column_order, structure.using, aliasing.forbid, ambiguous.column_count, references.qualification, references.consistent, references.from, aliasing.unused
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = upper
+
+[sqlfluff:rules:capitalisation.literals]
+capitalisation_policy = upper

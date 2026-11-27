@@ -1,0 +1,394 @@
+{
+  "dags": {
+    "bronze_discogs_daily": {
+      "layer": "bronze",
+      "after": [],
+      "schedule": "@daily"
+    },
+    "bronze_discogs_discovery": {
+      "layer": "bronze",
+      "after": [],
+      "schedule": null
+    },
+    "gold_discogs": {
+      "layer": "gold",
+      "after": [
+        "silver_discogs"
+      ],
+      "schedule": null
+    },
+    "silver_discogs": {
+      "layer": "silver",
+      "after": [
+        "bronze_discogs_daily"
+      ],
+      "schedule": null
+    }
+  },
+  "datasets": {
+    "control.tracked_releases": {
+      "producers": [
+        "bronze_discogs_daily.user_lists",
+        "bronze_discogs_discovery.discovery"
+      ],
+      "consumers": [
+        "silver_discogs.tracked_releases"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.tracked_releases"
+      ]
+    },
+    "bronze.artists": {
+      "producers": [
+        "bronze_discogs_daily.new_entities"
+      ],
+      "consumers": [
+        "silver_discogs.artists"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.artists"
+      ]
+    },
+    "bronze.collection": {
+      "producers": [
+        "bronze_discogs_daily.user_lists"
+      ],
+      "consumers": [
+        "silver_discogs.collection_items"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.collection_items"
+      ]
+    },
+    "bronze.labels": {
+      "producers": [
+        "bronze_discogs_daily.new_entities"
+      ],
+      "consumers": [
+        "silver_discogs.labels"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.labels"
+      ]
+    },
+    "bronze.marketplace_stats": {
+      "producers": [
+        "bronze_discogs_daily.snapshot"
+      ],
+      "consumers": [
+        "silver_discogs.marketplace_stats"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.marketplace_stats"
+      ]
+    },
+    "bronze.masters": {
+      "producers": [
+        "bronze_discogs_daily.new_entities"
+      ],
+      "consumers": [
+        "silver_discogs.masters"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.masters"
+      ]
+    },
+    "bronze.releases": {
+      "producers": [
+        "bronze_discogs_daily.snapshot"
+      ],
+      "consumers": [
+        "silver_discogs.release_artists",
+        "silver_discogs.releases",
+        "silver_discogs.tracks"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.release_artists",
+        "silver.releases",
+        "silver.tracks"
+      ]
+    },
+    "bronze.search": {
+      "producers": [
+        "bronze_discogs_discovery.discovery"
+      ],
+      "consumers": [],
+      "upstream": [],
+      "downstream": []
+    },
+    "bronze.wantlist": {
+      "producers": [
+        "bronze_discogs_daily.user_lists"
+      ],
+      "consumers": [
+        "silver_discogs.wantlist_items"
+      ],
+      "upstream": [],
+      "downstream": [
+        "silver.wantlist_items"
+      ]
+    },
+    "silver.artists": {
+      "producers": [
+        "silver_discogs.artists"
+      ],
+      "consumers": [
+        "gold_discogs.dim_artist"
+      ],
+      "upstream": [
+        "bronze.artists"
+      ],
+      "downstream": [
+        "gold.dim_artist"
+      ]
+    },
+    "silver.collection_items": {
+      "producers": [
+        "silver_discogs.collection_items"
+      ],
+      "consumers": [
+        "gold_discogs.fact_collection_item"
+      ],
+      "upstream": [
+        "bronze.collection"
+      ],
+      "downstream": [
+        "gold.fact_collection_item"
+      ]
+    },
+    "silver.labels": {
+      "producers": [
+        "silver_discogs.labels"
+      ],
+      "consumers": [
+        "gold_discogs.dim_label"
+      ],
+      "upstream": [
+        "bronze.labels"
+      ],
+      "downstream": [
+        "gold.dim_label"
+      ]
+    },
+    "silver.marketplace_stats": {
+      "producers": [
+        "silver_discogs.marketplace_stats"
+      ],
+      "consumers": [
+        "gold_discogs.fact_release_snapshot"
+      ],
+      "upstream": [
+        "bronze.marketplace_stats"
+      ],
+      "downstream": [
+        "gold.fact_release_snapshot"
+      ]
+    },
+    "silver.masters": {
+      "producers": [
+        "silver_discogs.masters"
+      ],
+      "consumers": [
+        "gold_discogs.dim_master"
+      ],
+      "upstream": [
+        "bronze.masters"
+      ],
+      "downstream": [
+        "gold.dim_master"
+      ]
+    },
+    "silver.release_artists": {
+      "producers": [
+        "silver_discogs.release_artists"
+      ],
+      "consumers": [
+        "gold_discogs.bridge_release_artist"
+      ],
+      "upstream": [
+        "bronze.releases"
+      ],
+      "downstream": [
+        "gold.bridge_release_artist"
+      ]
+    },
+    "silver.releases": {
+      "producers": [
+        "silver_discogs.releases"
+      ],
+      "consumers": [
+        "gold_discogs.dim_date",
+        "gold_discogs.dim_release",
+        "gold_discogs.fact_release_snapshot"
+      ],
+      "upstream": [
+        "bronze.releases"
+      ],
+      "downstream": [
+        "gold.dim_date",
+        "gold.dim_release",
+        "gold.fact_release_snapshot"
+      ]
+    },
+    "silver.tracked_releases": {
+      "producers": [
+        "silver_discogs.tracked_releases"
+      ],
+      "consumers": [
+        "gold_discogs.ctl_tracked_release"
+      ],
+      "upstream": [
+        "control.tracked_releases"
+      ],
+      "downstream": [
+        "gold.ctl_tracked_release"
+      ]
+    },
+    "silver.tracks": {
+      "producers": [
+        "silver_discogs.tracks"
+      ],
+      "consumers": [
+        "gold_discogs.dim_track"
+      ],
+      "upstream": [
+        "bronze.releases"
+      ],
+      "downstream": [
+        "gold.dim_track"
+      ]
+    },
+    "silver.wantlist_items": {
+      "producers": [
+        "silver_discogs.wantlist_items"
+      ],
+      "consumers": [
+        "gold_discogs.fact_wantlist_item"
+      ],
+      "upstream": [
+        "bronze.wantlist"
+      ],
+      "downstream": [
+        "gold.fact_wantlist_item"
+      ]
+    },
+    "gold.bridge_release_artist": {
+      "producers": [
+        "gold_discogs.bridge_release_artist"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.release_artists"
+      ],
+      "downstream": []
+    },
+    "gold.ctl_tracked_release": {
+      "producers": [
+        "gold_discogs.ctl_tracked_release"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.tracked_releases"
+      ],
+      "downstream": []
+    },
+    "gold.dim_artist": {
+      "producers": [
+        "gold_discogs.dim_artist"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.artists"
+      ],
+      "downstream": []
+    },
+    "gold.dim_date": {
+      "producers": [
+        "gold_discogs.dim_date"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.releases"
+      ],
+      "downstream": []
+    },
+    "gold.dim_label": {
+      "producers": [
+        "gold_discogs.dim_label"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.labels"
+      ],
+      "downstream": []
+    },
+    "gold.dim_master": {
+      "producers": [
+        "gold_discogs.dim_master"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.masters"
+      ],
+      "downstream": []
+    },
+    "gold.dim_release": {
+      "producers": [
+        "gold_discogs.dim_release"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.releases"
+      ],
+      "downstream": []
+    },
+    "gold.dim_track": {
+      "producers": [
+        "gold_discogs.dim_track"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.tracks"
+      ],
+      "downstream": []
+    },
+    "gold.fact_collection_item": {
+      "producers": [
+        "gold_discogs.fact_collection_item"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.collection_items"
+      ],
+      "downstream": []
+    },
+    "gold.fact_release_snapshot": {
+      "producers": [
+        "gold_discogs.fact_release_snapshot"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.marketplace_stats",
+        "silver.releases"
+      ],
+      "downstream": []
+    },
+    "gold.fact_wantlist_item": {
+      "producers": [
+        "gold_discogs.fact_wantlist_item"
+      ],
+      "consumers": [],
+      "upstream": [
+        "silver.wantlist_items"
+      ],
+      "downstream": []
+    }
+  }
+}

@@ -1,0 +1,38 @@
+name: New table or data source
+description: Propose a new gold/silver table, column, or Discogs API endpoint
+labels: [data]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Which question should this answer?
+      description: The analysis or dashboard this enables.
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - New gold table or column
+        - New silver table
+        - New API endpoint / collector (bronze)
+    validations:
+      required: true
+  - type: textarea
+    id: grain
+    attributes:
+      label: Grain and keys
+      description: One row per what? Which columns make a row unique?
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Sources
+      description: Existing silver tables, or the API endpoint (with a link to its docs) and its fields.
+  - type: textarea
+    id: cost
+    attributes:
+      label: API cost
+      description: For new endpoints, extra calls per day (the limit is 60 calls per minute).

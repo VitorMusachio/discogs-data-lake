@@ -1,0 +1,32 @@
+# Install with `make install` (or `pre-commit install`). Hooks run on every commit.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+      - id: detect-private-key
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/sqlfluff/sqlfluff
+    rev: 4.5.0
+    hooks:
+      - id: sqlfluff-lint
+        files: ^sql/
+  - repo: local
+    hooks:
+      # Regenerates docs/lineage.* whenever pipelines or SQL change; the commit stops if they changed,
+      # so the updated lineage is reviewed and committed together with the change.
+      - id: lineage
+        name: regenerate lineage docs
+        entry: env PYTHONPATH=src python -m discogs_pipeline.lineage generate
+        language: python
+        additional_dependencies: [pyyaml]
+        files: ^(pipelines/.*\.yml|sql/.*\.sql|src/discogs_pipeline/(spec|lineage)\.py)$
+        pass_filenames: false

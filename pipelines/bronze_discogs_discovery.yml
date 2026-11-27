@@ -1,0 +1,10 @@
+# Manual discovery: turns the seeds in config/tracking.yml into tracked releases.
+# Run it once before the first daily run, and again whenever the seeds change.
+dag_id: bronze_discogs_discovery
+layer: bronze
+description: Searches releases from the tracking.yml seeds and adds them to the tracked set.
+schedule: null
+tasks:
+  discovery:
+    operator: discogs_api
+    collector: discovery

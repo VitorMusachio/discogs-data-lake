@@ -1,0 +1,21 @@
+# Daily ingestion from the API (no SQL). Order matters: user lists add releases to the tracked set,
+# the snapshot collects that set, and new entities come from the day's releases.
+dag_id: bronze_discogs_daily
+layer: bronze
+description: Collects collections, wantlists, the snapshot of tracked releases and new entities.
+schedule: "@daily"
+retries: 1
+retry_delay_minutes: 10
+tasks:
+  user_lists:
+    operator: discogs_api
+    collector: user_lists
+  snapshot:
+    operator: discogs_api
+    collector: snapshot
+    upstream: [user_lists]
+    execution_timeout_minutes: 60
+  new_entities:
+    operator: discogs_api
+    collector: new_entities
+    upstream: [snapshot]
