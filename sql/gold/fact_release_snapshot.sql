@@ -1,4 +1,3 @@
--- partition_by: dt_snapshot
 -- Uma linha por release por dia. Preço e oferta ficam nulos quando não há nada à venda (não é zero).
 SELECT r.id_release,
        r.qt_have,

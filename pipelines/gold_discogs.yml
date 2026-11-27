@@ -1,0 +1,44 @@
+# Gold: modelo dimensional. Cada tarefa gera uma tabela a partir de sql/gold/<tarefa>.sql,
+# lendo as tabelas silver_* citadas no SQL, e a publica no Trino (lakehouse.gold).
+dag_id: gold_discogs
+layer: gold
+description: Reconstrói fatos e dimensões a partir da silver e registra as tabelas no Trino.
+schedule:
+  after: [silver_discogs]
+max_active_tasks: 2
+
+tasks:
+  fact_release_snapshot:
+    operator: spark_gold
+    partition_by: dt_snapshot
+    checks: {unique: [id_release, dt_snapshot], not_null: [id_release, dt_snapshot]}
+  dim_release:
+    operator: spark_gold
+    checks: {unique: [id_release], not_null: [id_release]}
+  dim_master:
+    operator: spark_gold
+    checks: {unique: [id_master]}
+  dim_artist:
+    operator: spark_gold
+    checks: {unique: [id_artist]}
+  dim_label:
+    operator: spark_gold
+    checks: {unique: [id_label]}
+  bridge_release_artist:
+    operator: spark_gold
+    checks: {not_null: [id_release, id_artist]}
+  dim_track:
+    operator: spark_gold
+    checks: {not_null: [id_release]}
+  dim_date:
+    operator: spark_gold
+    checks: {unique: [dt]}
+  fact_collection_item:
+    operator: spark_gold
+    checks: {unique: [nm_username, id_instance]}
+  fact_wantlist_item:
+    operator: spark_gold
+    checks: {unique: [nm_username, id_release]}
+  ctl_tracked_release:
+    operator: spark_gold
+    checks: {unique: [id_release]}

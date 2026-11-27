@@ -1,0 +1,77 @@
+# Silver: cada tarefa gera uma tabela a partir de sql/silver/<tarefa>.sql, lendo o JSON bruto do dia.
+# Roda quando a bronze diária termina e processa a mesma data da bronze.
+dag_id: silver_discogs
+layer: silver
+description: Padroniza nomes e tipos do JSON bruto (uma partição dt por dia).
+schedule:
+  after: [bronze_discogs_daily]
+max_active_tasks: 2   # cada tarefa abre uma JVM do Spark
+
+# Entradas brutas. `data_schema` descreve só o payload da API; o envelope
+# (ingested_at, id, username, seed) é acrescentado automaticamente. Campos não listados são ignorados.
+sources:
+  bronze_releases:
+    path: bronze/releases/dt={ds}
+    data_schema: >-
+      id BIGINT, title STRING, year INT, country STRING, released STRING, master_id BIGINT,
+      date_changed STRING, genres ARRAY<STRING>, styles ARRAY<STRING>,
+      formats ARRAY<STRUCT<name STRING, qty STRING>>,
+      labels ARRAY<STRUCT<id BIGINT, name STRING, catno STRING>>,
+      artists ARRAY<STRUCT<id BIGINT, name STRING, anv STRING, `join` STRING, role STRING>>,
+      tracklist ARRAY<STRUCT<position STRING, type_ STRING, title STRING, duration STRING>>,
+      community STRUCT<have INT, want INT, rating STRUCT<average DOUBLE, count INT>>
+  bronze_marketplace_stats:
+    path: bronze/marketplace_stats/dt={ds}
+    data_schema: >-
+      lowest_price STRUCT<value DOUBLE, currency STRING>, num_for_sale INT, blocked_from_sale BOOLEAN
+  bronze_masters:
+    path: bronze/masters/dt={ds}
+    data_schema: id BIGINT, title STRING, year INT, main_release BIGINT, most_recent_release BIGINT
+  bronze_artists:
+    path: bronze/artists/dt={ds}
+    data_schema: id BIGINT, name STRING, realname STRING, profile STRING
+  bronze_labels:
+    path: bronze/labels/dt={ds}
+    data_schema: id BIGINT, name STRING, profile STRING, parent_label STRUCT<id BIGINT, name STRING>
+  bronze_collection:
+    path: bronze/collection/dt={ds}
+    data_schema: id BIGINT, instance_id BIGINT, folder_id BIGINT, rating INT, date_added STRING
+  bronze_wantlist:
+    path: bronze/wantlist/dt={ds}
+    data_schema: id BIGINT, rating INT, date_added STRING
+  bronze_tracked_releases:
+    path: control/tracked_releases.jsonl
+    schema: id_release BIGINT, origin STRING, first_seen STRING
+
+tasks:
+  releases:
+    operator: spark_silver
+    checks: {unique: [id_release], not_null: [id_release]}
+  release_artists:
+    operator: spark_silver
+    checks: {not_null: [id_release, id_artist]}  # um artista pode aparecer duas vezes no crédito
+  tracks:
+    operator: spark_silver
+    checks: {not_null: [id_release]}
+  marketplace_stats:
+    operator: spark_silver
+    checks: {unique: [id_release], not_null: [id_release]}
+  masters:
+    operator: spark_silver
+    checks: {unique: [id_master], not_null: [id_master]}
+  artists:
+    operator: spark_silver
+    checks: {unique: [id_artist], not_null: [id_artist]}
+  labels:
+    operator: spark_silver
+    checks: {unique: [id_label], not_null: [id_label]}
+  collection_items:
+    operator: spark_silver
+    checks: {unique: [nm_username, id_instance], not_null: [nm_username, id_release]}
+  wantlist_items:
+    operator: spark_silver
+    checks: {unique: [nm_username, id_release], not_null: [nm_username, id_release]}
+  tracked_releases:
+    operator: spark_silver
+    partitioned: false   # estado atual, sem histórico por dia
+    checks: {unique: [id_release], not_null: [id_release]}

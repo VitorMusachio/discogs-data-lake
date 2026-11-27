@@ -13,7 +13,9 @@ class Settings:
     s3_secret_key: str
     bucket: str
     pipeline_config: str
-    gold_sql_dir: str
+    pipelines_dir: str
+    sql_dir: str
+    gold_schema: str
     trino_host: str
     trino_port: int
 
@@ -32,7 +34,9 @@ def load_settings() -> Settings:
         s3_secret_key=os.getenv("MINIO_ROOT_PASSWORD", ""),
         bucket=os.getenv("LAKE_BUCKET", "lakehouse"),
         pipeline_config=os.getenv("PIPELINE_CONFIG", "config/tracking.yml"),
-        gold_sql_dir=os.getenv("GOLD_SQL_DIR", "sql/gold"),
+        pipelines_dir=os.getenv("PIPELINES_DIR", "pipelines"),
+        sql_dir=os.getenv("SQL_DIR", "sql"),
+        gold_schema=os.getenv("GOLD_SCHEMA", "gold"),
         trino_host=os.getenv("TRINO_HOST", "trino"),
         trino_port=int(os.getenv("TRINO_PORT", "8080")),
     )

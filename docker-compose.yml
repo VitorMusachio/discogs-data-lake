@@ -9,11 +9,14 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "true"
     PYTHONPATH: /opt/airflow/src
     PIPELINE_CONFIG: /opt/airflow/config/tracking.yml
-    GOLD_SQL_DIR: /opt/airflow/sql/gold
+    PIPELINES_DIR: /opt/airflow/pipelines
+    SQL_DIR: /opt/airflow/sql
   volumes:
     - ./dags:/opt/airflow/dags
     - ./src:/opt/airflow/src
     - ./sql:/opt/airflow/sql
+    - ./pipelines:/opt/airflow/pipelines
+    - ./tests:/opt/airflow/tests
     - ./config:/opt/airflow/config
     - airflow-logs:/opt/airflow/logs
   depends_on:

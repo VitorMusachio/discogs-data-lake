@@ -1,4 +1,4 @@
-"""Publica as tabelas Gold no Trino (catálogo `lakehouse`, schema `gold`) como tabelas externas no Hive Metastore.
+"""Publica as tabelas Gold no Trino (catálogo `lakehouse`, schema `gold` por padrão) como tabelas externas no Hive Metastore.
 
 O Spark só grava Parquet; o Trino registra a tabela com o schema do DataFrame.
 Os caminhos usam s3a:// porque o Hive Metastore (Hadoop) só conhece esse esquema; o Trino aceita os dois.
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from pyspark.sql import types as T
 
-CATALOG, SCHEMA = "lakehouse", "gold"
+CATALOG = "lakehouse"
 
 
 def trino_type(dt: T.DataType) -> str:
@@ -32,7 +32,8 @@ def trino_type(dt: T.DataType) -> str:
     raise TypeError(f"Tipo sem mapeamento para o Trino: {dt}")
 
 
-def create_table_sql(table: str, schema: T.StructType, location: str, partition_col: str | None) -> str:
+def create_table_sql(table: str, schema: T.StructType, location: str, partition_col: str | None,
+                     target_schema: str = "gold") -> str:
     fields = [f for f in schema.fields if f.name != partition_col]
     if partition_col:
         fields.append(schema[partition_col])  # no Hive, colunas de partição vêm por último
@@ -40,16 +41,22 @@ def create_table_sql(table: str, schema: T.StructType, location: str, partition_
     props = [f"external_location = '{location}'", "format = 'PARQUET'"]
     if partition_col:
         props.append(f"partitioned_by = ARRAY['{partition_col}']")
-    return f"CREATE TABLE {CATALOG}.{SCHEMA}.{table} (\n  {cols}\n)\nWITH ({', '.join(props)})"
+    return f"CREATE TABLE {CATALOG}.{target_schema}.{table} (\n  {cols}\n)\nWITH ({', '.join(props)})"
 
 
 class TrinoRegistrar:
-    def __init__(self, host: str, port: int, bucket: str):
+    def __init__(self, host: str, port: int, bucket: str, schema: str = "gold"):
         import trino
 
+        self.schema = schema
         self.conn = trino.dbapi.connect(host=host, port=port, user="airflow", catalog=CATALOG)
-        self._exec(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{SCHEMA} "
+        self._exec(f"CREATE SCHEMA IF NOT EXISTS {CATALOG}.{schema} "
                    f"WITH (location = 's3a://{bucket}/gold/')")
+
+    def query(self, sql: str) -> list:
+        cur = self.conn.cursor()
+        cur.execute(sql)
+        return cur.fetchall()
 
     def _exec(self, sql: str) -> None:
         cur = self.conn.cursor()
@@ -57,7 +64,7 @@ class TrinoRegistrar:
         cur.fetchall()
 
     def __call__(self, table: str, df, location: str, partition_col: str | None) -> None:
-        self._exec(f"DROP TABLE IF EXISTS {CATALOG}.{SCHEMA}.{table}")
-        self._exec(create_table_sql(table, df.schema, location, partition_col))
+        self._exec(f"DROP TABLE IF EXISTS {CATALOG}.{self.schema}.{table}")
+        self._exec(create_table_sql(table, df.schema, location, partition_col, self.schema))
         if partition_col:
-            self._exec(f"CALL {CATALOG}.system.sync_partition_metadata('{SCHEMA}', '{table}', 'FULL')")
+            self._exec(f"CALL {CATALOG}.system.sync_partition_metadata('{self.schema}', '{table}', 'FULL')")

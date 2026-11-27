@@ -1,0 +1,21 @@
+# Ingestão diária pela API (sem SQL). A ordem importa: as listas de usuários acrescentam releases
+# ao conjunto acompanhado, o snapshot coleta esse conjunto e as entidades novas saem dos releases do dia.
+dag_id: bronze_discogs_daily
+layer: bronze
+description: Coleta coleções, wantlists, o snapshot dos releases acompanhados e entidades novas.
+schedule: "@daily"
+retries: 1
+retry_delay_minutes: 10
+tasks:
+  user_lists:
+    operator: discogs_api
+    collector: user_lists
+  snapshot:
+    operator: discogs_api
+    collector: snapshot
+    upstream: [user_lists]
+    execution_timeout_minutes: 60
+  new_entities:
+    operator: discogs_api
+    collector: new_entities
+    upstream: [snapshot]

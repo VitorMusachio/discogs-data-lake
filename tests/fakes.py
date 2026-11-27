@@ -34,3 +34,40 @@ class FakeClient:
     def paginate(self, path, key, params=None, max_pages=None):
         self.calls.append(path)
         yield from self.pages.get(path, [])
+
+
+def seed_bronze_day(lake, ds, *, have, first_day):
+    """Um dia de bronze sintético: 2 releases (um sem master e com gravadora placeholder), stats,
+    entidades novas só no primeiro dia, coleção (uma cópia sai no segundo dia) e wantlist."""
+    from discogs_pipeline.storage import write_bronze
+    from discogs_pipeline.tracking import TrackedReleases
+
+    write_bronze(lake, "releases", ds, [
+        {"id": 1, "data": release(1, have=have, artists=((1, "Nirvana"), (2, "Guest")),
+                                  tracks=(("A1", "Teen Spirit", "5:01"), ("A2", "In Bloom", "1:04:15"),
+                                          ("B1", "Untitled", "")))},
+        {"id": 2, "data": release(2, master=None, label=(0, "Not On Label", "none"))},
+    ])
+    write_bronze(lake, "marketplace_stats", ds, [
+        {"id": 1, "data": {"lowest_price": {"value": 12.34, "currency": "USD"}, "num_for_sale": 7,
+                           "blocked_from_sale": False}},
+        {"id": 2, "data": {"lowest_price": None, "num_for_sale": None, "blocked_from_sale": False}},
+    ])
+    write_bronze(lake, "artists", ds, [{"id": 1, "data": {"id": 1, "name": "Nirvana"}}] if first_day else [])
+    write_bronze(lake, "labels", ds, [{"id": 895, "data": {"id": 895, "name": "DGC",
+                                                           "parent_label": {"id": 1, "name": "UMG"}}}]
+                 if first_day else [])
+    write_bronze(lake, "masters", ds, [{"id": 13814, "data": {"id": 13814, "title": "Nevermind", "year": 1991,
+                                                              "main_release": 1}}] if first_day else [])
+    collection = [{"username": "vitor", "data": {"id": 1, "instance_id": 11, "folder_id": 1, "rating": 0,
+                                                 "date_added": "2020-01-02T03:04:05-08:00"}}]
+    if first_day:
+        collection.append({"username": "vitor", "data": {"id": 2, "instance_id": 12, "folder_id": 1, "rating": 5,
+                                                         "date_added": "2020-01-02T03:04:05-08:00"}})
+    write_bronze(lake, "collection", ds, collection)
+    write_bronze(lake, "wantlist", ds, [{"username": "vitor", "data": {"id": 2, "rating": 0,
+                                                                       "date_added": "2021-01-01T00:00:00-00:00"}}])
+    tracked = TrackedReleases(lake)
+    tracked.add(1, "discovery:1991", ds)
+    tracked.add(2, "collection:vitor", ds)
+    tracked.save()

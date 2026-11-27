@@ -1,6 +1,6 @@
 """Configuração de acompanhamento (config/tracking.yml) e estado de controle no lake.
 
-control/tracked_releases.json: {"<id_release>": {"origin": "...", "first_seen": "YYYY-MM-DD"}}
+control/tracked_releases.jsonl: uma linha {"id_release", "origin", "first_seen"} por release
   Releases acompanhados no snapshot diário. Só recebe inclusões: nada sai, para as séries ficarem completas.
 control/known_entities.json: {"artists": [...], "labels": [...], "masters": [...]}
   Entidades já coletadas; só IDs novos geram chamadas à API.
@@ -8,6 +8,7 @@ control/known_entities.json: {"artists": [...], "labels": [...], "masters": [...
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -15,7 +16,7 @@ import yaml
 
 from .storage import Lake, read_json, write_json
 
-TRACKED_KEY = "control/tracked_releases.json"
+TRACKED_KEY = "control/tracked_releases.jsonl"
 KNOWN_KEY = "control/known_entities.json"
 ENTITY_TYPES = ("artists", "labels", "masters")
 
@@ -43,7 +44,11 @@ def load_config(path: str | Path) -> TrackingConfig:
 class TrackedReleases:
     def __init__(self, lake: Lake):
         self.lake = lake
-        self.data: dict[str, dict] = read_json(lake, TRACKED_KEY, {})
+        raw = (lake.get_bytes(TRACKED_KEY) or b"").decode()
+        rows = [json.loads(line) for line in raw.splitlines() if line.strip()]
+        self.data: dict[str, dict] = {
+            str(r["id_release"]): {"origin": r["origin"], "first_seen": r["first_seen"]} for r in rows
+        }
 
     def __len__(self) -> int:
         return len(self.data)
@@ -59,7 +64,8 @@ class TrackedReleases:
         return True
 
     def save(self) -> None:
-        write_json(self.lake, TRACKED_KEY, self.data)
+        lines = [json.dumps({"id_release": int(k), **v}) for k, v in sorted(self.data.items(), key=lambda kv: int(kv[0]))]
+        self.lake.put_bytes(TRACKED_KEY, ("\n".join(lines) + "\n").encode())
 
 
 class KnownEntities:

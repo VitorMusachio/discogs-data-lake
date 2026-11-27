@@ -4,9 +4,9 @@
 # Os releases dessas listas passam a ser acompanhados automaticamente no snapshot diário.
 # A coleção precisa ser pública, ou pertencer ao dono do DISCOGS_TOKEN.
 usernames:
-  - seu_username_aqui
+  - vitormusachio
 
-# Sementes da DAG discogs_discovery (execução manual).
+# Sementes da DAG bronze_discogs_discovery (execução manual).
 # Cada item vira uma busca em /database/search?type=release; cada página traz até 100 releases.
 # Campos aceitos: year, genre, style, country, format, pages (padrão 1), sort (padrão "want").
 discovery:
