@@ -1,7 +1,7 @@
-"""Snapshot diário dos releases acompanhados: detalhe do release + estatísticas do marketplace em USD.
+"""Daily snapshot of the tracked releases: release detail + marketplace stats in USD.
 
-- /releases/{id}?curr_abbr=USD          atributos, artists[], labels[], tracklist[], community.have/want
-- /marketplace/stats/{id}?curr_abbr=USD  lowest_price, num_for_sale, blocked_from_sale (sem login)
+- /releases/{id}?curr_abbr=USD          attributes, artists[], labels[], tracklist[], community.have/want
+- /marketplace/stats/{id}?curr_abbr=USD  lowest_price, num_for_sale, blocked_from_sale (no login needed)
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ def run_snapshot(client: DiscogsClient, lake: Lake, config: TrackingConfig, ds: 
         try:
             release = client.get(f"/releases/{release_id}", {"curr_abbr": CURRENCY})
             if release is None:
-                log.info("Release %s não existe mais (404).", release_id)
+                log.info("Release %s no longer exists (404).", release_id)
                 continue
             releases.append({"id": release_id, "data": release})
             market = client.get(f"/marketplace/stats/{release_id}", {"curr_abbr": CURRENCY})

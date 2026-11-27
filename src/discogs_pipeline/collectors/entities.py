@@ -1,4 +1,4 @@
-"""Artistas, gravadoras e masters citados nos releases do dia, coletados só quando o ID é novo."""
+"""Artists, labels and masters cited by the day's releases, collected only when the ID is new."""
 
 from __future__ import annotations
 
@@ -14,9 +14,9 @@ log = logging.getLogger(__name__)
 
 
 def entity_ids(release: dict) -> dict[str, set[int]]:
-    """IDs referenciados por um payload de /releases/{id}.
+    """IDs referenced by a /releases/{id} payload.
 
-    Artistas e gravadoras com id 0 são placeholders do Discogs (ex.: "Various", "Not On Label").
+    Artists and labels with id 0 are Discogs placeholders (e.g. "Various", "Not On Label").
     """
     ids = {t: set() for t in ENTITY_TYPES}
     for artist in release.get("artists") or []:
@@ -58,5 +58,5 @@ def run_new_entities(client: DiscogsClient, lake: Lake, config: TrackingConfig, 
             known.mark(entity_type, entity_id)
         counts[entity_type] = write_bronze(lake, entity_type, ds, records)
     known.save()
-    check_failures("entidades novas", failed, total, config.max_failure_ratio)
+    check_failures("new entities", failed, total, config.max_failure_ratio)
     return counts

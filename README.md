@@ -15,7 +15,7 @@ cada tarefa gera uma tabela a partir de um arquivo SQL.
   <tr>
     <td align="center" width="110"><img src="https://cdn.simpleicons.org/apacheairflow" width="40" height="40" alt="Apache Airflow"/><br/><b>Airflow 2.9</b><br/><sub>orquestração</sub></td>
     <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachespark" width="40" height="40" alt="Apache Spark"/><br/><b>Spark 3.5</b><br/><sub>transformação</sub></td>
-    <td align="center" width="110"><img src="https://cdn.simpleicons.org/minio" width="40" height="40" alt="MinIO"/><br/><b>MinIO</b><br/><sub>armazenamento S3</sub></td>
+    <td align="center" width="110"><img src="https://raw.githubusercontent.com/seaweedfs/seaweedfs/master/note/seaweedfs.svg" width="40" height="40" alt="SeaweedFS"/><br/><b>SeaweedFS</b><br/><sub>armazenamento S3</sub></td>
     <td align="center" width="110"><img src="https://cdn.simpleicons.org/apachehive" width="40" height="40" alt="Apache Hive"/><br/><b>Hive Metastore 4</b><br/><sub>catálogo</sub></td>
     <td align="center" width="110"><img src="https://cdn.simpleicons.org/trino" width="40" height="40" alt="Trino"/><br/><b>Trino</b><br/><sub>consulta SQL</sub></td>
   </tr>
@@ -42,7 +42,7 @@ flowchart LR
         b -- dataset --> s -- dataset --> g
     end
 
-    subgraph minio["MinIO — bucket lakehouse"]
+    subgraph s3["SeaweedFS (API S3) — bucket lakehouse"]
         direction TB
         bz[("bronze/<br/>JSON cru por dia")]
         sv[("silver/<br/>Parquet por dia")]
@@ -88,6 +88,9 @@ flowchart LR
   `gold/<tabela>/` e registra a tabela no Trino (`lakehouse.gold`) como tabela externa no Hive Metastore.
 - Os dois operadores Spark compartilham a mesma base (`SparkSqlOperator`): sessão Spark, execução do SQL,
   gravação e checks. Cada subclasse muda só o que é próprio da camada.
+- **Armazenamento**: o SeaweedFS expõe uma API S3 compatível. O MinIO, usado antes, deixou de publicar imagens
+  públicas. O Spark grava com o committer `directory` do S3A, porque o commit padrão depende de *rename*, que no S3
+  é uma cópia e falha no SeaweedFS.
 
 ## Estrutura
 
@@ -181,7 +184,7 @@ Prefixos de coluna: `id_` chave, `dt_` data, `ts_` timestamp, `qt_` quantidade, 
    ```bash
    docker compose up -d --build
    ```
-4. No Airflow (<http://localhost:8080>, com o usuário e a senha do `.env`):
+4. No Airflow (<http://localhost:8080>, ou a porta de `AIRFLOW_PORT`, com o usuário e a senha do `.env`):
    1. Despause e rode `bronze_discogs_discovery` uma vez.
    2. Despause `bronze_discogs_daily`, `silver_discogs` e `gold_discogs`. A silver e a gold disparam sozinhas
       quando a camada anterior termina. Para reprocessar um dia, dispare a silver com o conf `{"ds": "AAAA-MM-DD"}`.
@@ -189,7 +192,7 @@ Prefixos de coluna: `id_` chave, `dt_` data, `ts_` timestamp, `qt_` quantidade, 
    - **Trino**: `localhost:8081`, catálogo `lakehouse`, schema `gold`.
    - **Metabase**: <http://localhost:3000>. Adicione um banco **Starburst** com host `trino`, porta `8080`,
      catálogo `lakehouse` e schema `gold`.
-   - **MinIO**: console em <http://localhost:9001>.
+   - **SeaweedFS**: API S3 em `localhost:8333` e navegador de arquivos em <http://localhost:8888/buckets/lakehouse/>.
 
 ```sql
 -- Releases cuja demanda mais cresceu nos últimos 30 dias
@@ -217,10 +220,10 @@ python3 -m venv .venv && .venv/bin/pip install pyspark==3.5.1 boto3 requests pyy
 .venv/bin/python -m pytest tests/unit
 ```
 
-**Integração** (com a stack no ar). Usam o bucket `lakehouse-it` e o schema `gold_it`, separados dos dados reais.
+**Integração** (com a stack no ar). Cada execução usa um bucket próprio (`lakehouse-it-<timestamp>`) e o schema `gold_it`, separados dos dados reais e apagados ao final.
 Conferem:
 - se as DAGs carregam sem erro e seguem os YAML (tarefas, dependências, operadores e o encadeamento por datasets);
-- o fluxo completo pelos operadores do Airflow: bronze no MinIO → silver → gold → consultas no Trino.
+- o fluxo completo pelos operadores do Airflow: bronze no S3 → silver → gold → consultas no Trino.
 
 ```bash
 docker compose exec airflow-scheduler python -m pytest tests/integration

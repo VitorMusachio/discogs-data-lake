@@ -1,4 +1,4 @@
--- Uma linha por release por dia. Preço e oferta ficam nulos quando não há nada à venda (não é zero).
+-- One row per release per day. Price and offer are null when nothing is for sale (not zero).
 SELECT r.id_release,
        r.qt_have,
        r.qt_want,

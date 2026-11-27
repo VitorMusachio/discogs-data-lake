@@ -1,4 +1,4 @@
--- Oferta no marketplace. Sem itens à venda, preço e quantidade ficam nulos (não zero).
+-- Marketplace offer. With nothing for sale, price and quantity are null (not zero).
 SELECT id                                                       AS id_release,
        CAST(CASE WHEN data.lowest_price.currency = 'USD' THEN data.lowest_price.value END
             AS DECIMAL(12, 2))                                   AS vl_lowest_price_usd,

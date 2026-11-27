@@ -1,4 +1,4 @@
-"""Validação dos YAML de pipeline (sem Airflow)."""
+"""Pipeline YAML validation (no Airflow)."""
 
 from pathlib import Path
 
@@ -61,15 +61,15 @@ def bronze(tasks):
 
 
 @pytest.mark.parametrize("body, message", [
-    (bronze({"a": {"operator": "nope"}}), "operador 'nope' desconhecido"),
-    (bronze({"a": {"operator": "discogs_api"}}), "exige `collector`"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "xyz"}}), "coletor desconhecido"),
-    (bronze({"a": {"operator": "spark_gold"}}), "não serve para a camada bronze"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]}}), "upstream 'b' não existe"),
+    (bronze({"a": {"operator": "nope"}}), "unknown operator 'nope'"),
+    (bronze({"a": {"operator": "discogs_api"}}), "requires `collector`"),
+    (bronze({"a": {"operator": "discogs_api", "collector": "xyz"}}), "unknown collector"),
+    (bronze({"a": {"operator": "spark_gold"}}), "does not fit the bronze layer"),
+    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]}}), "upstream 'b' does not exist"),
     (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["b"]},
-             "b": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["a"]}}), "ciclo"),
-    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "checks": {"foo": 1}}}), "checks desconhecidos"),
-    ({"layer": "platinum", "tasks": {}}, "`layer` deve ser"),
+             "b": {"operator": "discogs_api", "collector": "snapshot", "upstream": ["a"]}}), "task cycle"),
+    (bronze({"a": {"operator": "discogs_api", "collector": "snapshot", "checks": {"foo": 1}}}), "unknown checks"),
+    ({"layer": "platinum", "tasks": {}}, "`layer` must be one of"),
 ])
 def test_invalid_dag_specs(tmp_path, body, message):
     with pytest.raises(SpecError, match=message):
@@ -81,7 +81,7 @@ def test_upstream_dag_must_exist(tmp_path):
                           "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
                           "tasks": {"t": {"operator": "spark_silver"}}})
     sql(tmp_path, "silver/t.sql", "SELECT data.id FROM bronze_a")
-    with pytest.raises(SpecError, match="DAG upstream 'ghost' não existe"):
+    with pytest.raises(SpecError, match="upstream DAG 'ghost' does not exist"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
 
 
@@ -90,25 +90,25 @@ def test_silver_sql_must_read_declared_sources(tmp_path):
                           "sources": {"bronze_a": {"path": "bronze/a/dt={ds}", "data_schema": "id BIGINT"}},
                           "tasks": {"t": {"operator": "spark_silver"}}})
     sql(tmp_path, "silver/t.sql", "SELECT * FROM bronze_b")
-    with pytest.raises(SpecError, match="fontes não declaradas"):
+    with pytest.raises(SpecError, match="sources not declared"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
 
 
 def test_gold_sql_must_read_existing_silver_tables(tmp_path):
     write(tmp_path, "g", {"layer": "gold", "schedule": None, "tasks": {"t": {"operator": "spark_gold"}}})
     sql(tmp_path, "gold/t.sql", "SELECT * FROM silver_ghost")
-    with pytest.raises(SpecError, match="tabelas silver inexistentes"):
+    with pytest.raises(SpecError, match="unknown silver tables"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
 
 
 def test_missing_sql_file(tmp_path):
     write(tmp_path, "g", {"layer": "gold", "schedule": None, "tasks": {"t": {"operator": "spark_gold"}}})
-    with pytest.raises(SpecError, match="não encontrado"):
+    with pytest.raises(SpecError, match="not found"):
         load_specs(tmp_path / "pipelines", tmp_path / "sql")
 
 
 def test_source_needs_exactly_one_schema(tmp_path):
     body = {"layer": "silver", "tasks": {"t": {"operator": "spark_silver"}},
             "sources": {"bronze_a": {"path": "x", "schema": "a INT", "data_schema": "b INT"}}}
-    with pytest.raises(SpecError, match="exatamente um"):
+    with pytest.raises(SpecError, match="exactly one of"):
         parse_dag(tmp_path / "x.yml", body)

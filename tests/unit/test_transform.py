@@ -1,4 +1,4 @@
-"""Silver e gold de ponta a ponta com Spark local, a partir dos YAML e SQL reais do projeto."""
+"""Silver and gold end to end with local Spark, from the project's real YAML and SQL."""
 
 from datetime import date
 from pathlib import Path
@@ -52,7 +52,7 @@ def test_snapshot_has_one_row_per_release_per_day(gold):
         (1, 100, d1), (2, 100, d1), (1, 120, d2), (2, 100, d2)]
     priced = {r.id_release: (r.vl_lowest_price_usd, r.qt_for_sale) for r in snap.where(f"dt_snapshot = '{D2}'").collect()}
     assert float(priced[1][0]) == 12.34 and priced[1][1] == 7
-    assert priced[2] == (None, None)  # sem oferta fica nulo, não zero
+    assert priced[2] == (None, None)  # no offer means null, not zero
 
 
 def test_dimensions_keep_latest_version_and_first_values(gold):
@@ -82,11 +82,11 @@ def test_dim_date_and_tracked(gold):
 
 def test_checks_reject_bad_data(spark):
     df = spark.createDataFrame([(1, "a"), (1, None)], "id long, name string")
-    with pytest.raises(DataQualityError, match="chaves repetidas"):
+    with pytest.raises(DataQualityError, match="duplicate keys"):
         run_checks("t", df, {"unique": ["id"]})
-    with pytest.raises(DataQualityError, match="nulos"):
+    with pytest.raises(DataQualityError, match="nulls"):
         run_checks("t", df, {"not_null": ["name"]})
-    with pytest.raises(DataQualityError, match="mínimo"):
+    with pytest.raises(DataQualityError, match="expected at least"):
         run_checks("t", df, {"min_rows": 3})
     run_checks("t", df, {"not_null": ["id"], "min_rows": 2})
 

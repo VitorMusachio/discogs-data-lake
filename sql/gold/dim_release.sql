@@ -1,4 +1,4 @@
--- Atributos de cada release na versão mais recente coletada.
+-- Attributes of each release, from its latest collected version.
 SELECT id_release, id_master, id_label, ds_title, nr_year, ds_country, ds_genre, ds_style,
        ds_format, cd_catno, ds_released, dt_released, ts_changed
 FROM (

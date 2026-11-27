@@ -1,7 +1,7 @@
-"""Discovery: transforma as sementes do tracking.yml em releases acompanhados.
+"""Discovery: turn the seeds in tracking.yml into tracked releases.
 
-A busca (/database/search) devolve só IDs de release: o campo `label` é uma lista de nomes
-e não existe campo de artista. Artistas, gravadoras e masters saem depois do detalhe do release.
+Search (/database/search) only returns release IDs: `label` is a list of names and there is no
+artist field. Artists, labels and masters come later, from each release's detail.
 """
 
 from __future__ import annotations
@@ -44,11 +44,11 @@ def run_discovery(client: DiscogsClient, lake: Lake, config: TrackingConfig, ds:
         raw.extend({"seed": origin, "data": r} for r in results)
         for release_id in release_ids_from_search(results):
             if len(tracked) >= config.max_tracked_releases:
-                log.warning("Teto de %s releases acompanhados atingido; sementes restantes ignoradas.",
+                log.warning("Reached the cap of %s tracked releases; skipping the remaining seeds.",
                             config.max_tracked_releases)
                 break
             added += tracked.add(release_id, origin, ds)
     write_bronze(lake, "search", ds, raw)
     tracked.save()
-    log.info("Discovery: %s resultados, %s releases novos, %s acompanhados no total.", len(raw), added, len(tracked))
+    log.info("Discovery: %s results, %s new releases, %s tracked in total.", len(raw), added, len(tracked))
     return {"results": len(raw), "added": added, "tracked": len(tracked)}

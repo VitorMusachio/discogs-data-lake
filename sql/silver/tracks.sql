@@ -1,4 +1,4 @@
--- Faixas de cada release. Títulos de lado ("Side A", type_ = heading) saem; a posição original é mantida.
+-- Tracks of each release. Side headings ("Side A", type_ = heading) are dropped; the original position is kept.
 SELECT r.data.id                AS id_release,
        t.position               AS cd_position,
        pos + 1                  AS nr_sequence,

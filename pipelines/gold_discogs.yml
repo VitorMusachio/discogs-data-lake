@@ -1,8 +1,8 @@
-# Gold: modelo dimensional. Cada tarefa gera uma tabela a partir de sql/gold/<tarefa>.sql,
-# lendo as tabelas silver_* citadas no SQL, e a publica no Trino (lakehouse.gold).
+# Gold: dimensional model. Each task builds one table from sql/gold/<task>.sql, reading the
+# silver_* tables its SQL cites, and publishes it in Trino (lakehouse.gold).
 dag_id: gold_discogs
 layer: gold
-description: Reconstrói fatos e dimensões a partir da silver e registra as tabelas no Trino.
+description: Rebuilds facts and dimensions from silver and registers the tables in Trino.
 schedule:
   after: [silver_discogs]
 max_active_tasks: 2

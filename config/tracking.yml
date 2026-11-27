@@ -1,14 +1,14 @@
-# O que o pipeline acompanha. Edite à vontade: mudanças valem a partir da próxima execução.
+# What the pipeline tracks. Edit freely: changes apply from the next run on.
 
-# Usuários do Discogs cujas coleções e wantlists entram na Gold.
-# Os releases dessas listas passam a ser acompanhados automaticamente no snapshot diário.
-# A coleção precisa ser pública, ou pertencer ao dono do DISCOGS_TOKEN.
+# Discogs users whose collections and wantlists go into gold.
+# Releases from these lists are tracked automatically in the daily snapshot.
+# The collection must be public, or belong to the owner of DISCOGS_TOKEN.
 usernames:
   - vitormusachio
 
-# Sementes da DAG bronze_discogs_discovery (execução manual).
-# Cada item vira uma busca em /database/search?type=release; cada página traz até 100 releases.
-# Campos aceitos: year, genre, style, country, format, pages (padrão 1), sort (padrão "want").
+# Seeds for the bronze_discogs_discovery DAG (manual run).
+# Each item becomes a /database/search?type=release query; each page returns up to 100 releases.
+# Accepted fields: year, genre, style, country, format, pages (default 1), sort (default "want").
 discovery:
   - year: 1991
     genre: Rock
@@ -18,8 +18,8 @@ discovery:
     pages: 1
 
 limits:
-  # Teto de releases acompanhados. Cada um custa 2 chamadas por dia (release + stats);
-  # com o limite de 60 chamadas por minuto, 500 releases levam cerca de 17 minutos por dia.
+  # Cap on tracked releases. Each one costs 2 calls a day (release + stats);
+  # at 60 calls per minute, 500 releases take about 17 minutes a day.
   max_tracked_releases: 500
-  # Se mais que essa fração das chamadas de uma etapa falhar, a tarefa falha no Airflow.
+  # If more than this fraction of a step's calls fail, the Airflow task fails.
   max_failure_ratio: 0.2

@@ -1,4 +1,4 @@
--- Faixas de cada release (títulos de lado, como "Side A", ficam de fora), na coleta mais recente.
+-- Tracks of each release (side headings such as "Side A" excluded), from the latest collection.
 WITH latest AS (
     SELECT id_release, MAX(dt) AS dt FROM silver_tracks GROUP BY id_release
 )

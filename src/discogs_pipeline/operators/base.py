@@ -1,4 +1,4 @@
-"""Base comum aos operadores do lake: configuração e data de referência (ds) da execução."""
+"""Common base for lake operators: settings and the partition date (ds) of the run."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from ..settings import Settings, load_settings
 
 
 def resolve_ds(context) -> str:
-    """Data da partição a processar.
+    """Partition date to process.
 
-    1. `ds` no conf de uma execução manual ({"ds": "2026-11-27"})
-    2. a data lógica da DAG upstream que disparou esta execução (DAGs agendadas por dataset)
-    3. a data lógica desta execução
+    1. `ds` in the conf of a manual run ({"ds": "2026-11-27"})
+    2. the logical date of the upstream DAG run that triggered this one (dataset-scheduled DAGs)
+    3. the logical date of this run
     """
     dag_run = context.get("dag_run")
     conf = getattr(dag_run, "conf", None) or {}
@@ -27,7 +27,7 @@ def resolve_ds(context) -> str:
 
 
 class LakeOperator(BaseOperator):
-    """Operador base: subclasses implementam `run(ds, settings)` e devolvem um resumo (vai para o XCom)."""
+    """Base operator: subclasses implement `run(ds, settings)` and return a summary (pushed to XCom)."""
 
     ui_color = "#e8f1fb"
 
@@ -40,5 +40,5 @@ class LakeOperator(BaseOperator):
 
     def execute(self, context):
         ds = resolve_ds(context)
-        self.log.info("Camada %s, partição ds=%s", self.layer, ds)
+        self.log.info("Layer %s, partition ds=%s", self.layer, ds)
         return self.run(ds, load_settings())

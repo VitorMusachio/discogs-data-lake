@@ -1,4 +1,4 @@
--- Cada cópia na coleção (instance_id distingue cópias do mesmo release). Nota 0 = sem nota.
+-- Each copy in the collection (instance_id tells copies of the same release apart). Rating 0 = no rating.
 SELECT username                     AS nm_username,
        data.instance_id             AS id_instance,
        data.folder_id               AS id_folder,

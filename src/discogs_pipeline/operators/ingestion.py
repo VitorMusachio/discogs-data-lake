@@ -1,4 +1,4 @@
-"""Bronze: ingestão pela API do Discogs. Não usa SQL; o YAML escolhe o coletor pelo nome."""
+"""Bronze: ingestion from the Discogs API. No SQL; the YAML picks the collector by name."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from importlib import import_module
 from ..settings import Settings
 from .base import LakeOperator
 
-# nome no YAML -> (módulo, função) em discogs_pipeline.collectors
+# YAML name -> (module, function) in discogs_pipeline.collectors
 COLLECTORS = {
     "discovery": ("discovery", "run_discovery"),
     "user_lists": ("users", "run_user_lists"),
@@ -27,7 +27,7 @@ class DiscogsApiOperator(LakeOperator):
     def __init__(self, *, collector: str, **kwargs):
         super().__init__(**kwargs)
         if collector not in COLLECTORS:
-            raise ValueError(f"Coletor desconhecido: {collector}")
+            raise ValueError(f"Unknown collector: {collector}")
         self.collector = collector
 
     def run(self, ds: str, settings: Settings):

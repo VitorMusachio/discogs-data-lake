@@ -1,4 +1,4 @@
--- Artistas creditados em cada release, na ordem do crédito. id 0 é placeholder do Discogs ("Various").
+-- Artists credited on each release, in credit order. id 0 is a Discogs placeholder ("Various").
 SELECT r.data.id                              AS id_release,
        a.id                                   AS id_artist,
        pos + 1                                AS nr_position,

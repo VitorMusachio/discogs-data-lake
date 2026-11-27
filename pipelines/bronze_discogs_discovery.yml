@@ -1,8 +1,8 @@
-# Discovery manual: transforma as sementes de config/tracking.yml em releases acompanhados.
-# Rode uma vez antes do primeiro dia e de novo sempre que mudar as sementes.
+# Manual discovery: turns the seeds in config/tracking.yml into tracked releases.
+# Run it once before the first daily run, and again whenever the seeds change.
 dag_id: bronze_discogs_discovery
 layer: bronze
-description: Busca releases a partir das sementes do tracking.yml e acrescenta ao conjunto acompanhado.
+description: Searches releases from the tracking.yml seeds and adds them to the tracked set.
 schedule: null
 tasks:
   discovery:

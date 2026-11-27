@@ -1,6 +1,6 @@
-"""Ponto de entrada do Airflow: cria uma DAG para cada arquivo em pipelines/*.yml.
+"""Airflow entry point: builds one DAG per file in pipelines/*.yml.
 
-Para mudar uma DAG, edite o YAML (e o SQL em sql/<camada>/). Nada precisa ser alterado aqui.
+To change a DAG, edit its YAML (and the SQL under sql/<layer>/). Nothing needs to change here.
 """
 
 from discogs_pipeline.dag_factory import build_all

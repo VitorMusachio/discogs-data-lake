@@ -1,8 +1,8 @@
-"""Coleções e wantlists dos usernames configurados.
+"""Collections and wantlists of the configured usernames.
 
-Endpoints: /users/{username}/collection/folders/0/releases (pasta 0 = "All") e /users/{username}/wants.
-Cada execução grava o estado completo do dia; a Gold usa o dia mais recente de cada usuário.
-Os releases encontrados entram em control/tracked_releases.json.
+Endpoints: /users/{username}/collection/folders/0/releases (folder 0 = "All") and /users/{username}/wants.
+Each run writes the full state for the day; gold uses each user's latest day.
+Releases found here are added to control/tracked_releases.jsonl.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ LISTS = {
 
 def run_user_lists(client: DiscogsClient, lake: Lake, config: TrackingConfig, ds: str) -> dict:
     if not config.usernames:
-        log.warning("Nenhum username em tracking.yml; coleção e wantlist ficam vazias.")
+        log.warning("No usernames in tracking.yml; collection and wantlist stay empty.")
     tracked = TrackedReleases(lake)
     counts = {}
     for entity, (path, key) in LISTS.items():
@@ -35,5 +35,5 @@ def run_user_lists(client: DiscogsClient, lake: Lake, config: TrackingConfig, ds
                 tracked.add(item["id"], f"{entity}:{username}", ds)
         counts[entity] = write_bronze(lake, entity, ds, records)
     tracked.save()
-    log.info("Listas de usuários: %s", counts)
+    log.info("User lists: %s", counts)
     return counts

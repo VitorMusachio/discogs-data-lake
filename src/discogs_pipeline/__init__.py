@@ -1,1 +1,1 @@
-"""Pipeline do Discogs Data Lake: coleta (bronze), padronização (silver) e modelo analítico (gold)."""
+"""Discogs Data Lake pipeline: ingestion (bronze), standardization (silver) and analytical model (gold)."""

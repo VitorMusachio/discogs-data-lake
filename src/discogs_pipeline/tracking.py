@@ -1,9 +1,9 @@
-"""Configuração de acompanhamento (config/tracking.yml) e estado de controle no lake.
+"""Tracking configuration (config/tracking.yml) and control state kept in the lake.
 
-control/tracked_releases.jsonl: uma linha {"id_release", "origin", "first_seen"} por release
-  Releases acompanhados no snapshot diário. Só recebe inclusões: nada sai, para as séries ficarem completas.
+control/tracked_releases.jsonl: one line {"id_release", "origin", "first_seen"} per release
+  Releases in the daily snapshot. Append-only: nothing leaves, so time series stay complete.
 control/known_entities.json: {"artists": [...], "labels": [...], "masters": [...]}
-  Entidades já coletadas; só IDs novos geram chamadas à API.
+  Entities already collected; only new IDs cost API calls.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ class TrackingConfig:
 def load_config(path: str | Path) -> TrackingConfig:
     raw = yaml.safe_load(Path(path).read_text()) or {}
     limits = raw.get("limits") or {}
-    usernames = [u for u in (raw.get("usernames") or []) if u and u != "seu_username_aqui"]
+    usernames = [u for u in (raw.get("usernames") or []) if u and u != "your_username_here"]
     return TrackingConfig(
         usernames=usernames,
         discovery=list(raw.get("discovery") or []),

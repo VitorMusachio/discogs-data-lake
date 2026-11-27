@@ -1,4 +1,4 @@
-"""As DAGs geradas pelo Airflow a partir dos YAML: carregam sem erro e refletem a declaração."""
+"""DAGs Airflow builds from the YAML: they load without errors and match the declaration."""
 
 from types import SimpleNamespace
 
@@ -56,8 +56,8 @@ def test_layers_are_chained_by_datasets(dagbag):
     assert dagbag.get_dag("bronze_discogs_daily").schedule_interval == "@daily"
     silver = dagbag.get_dag("silver_discogs").dataset_triggers
     gold = dagbag.get_dag("gold_discogs").dataset_triggers
-    assert list(silver) == [dag_dataset("bronze_discogs_daily")]
-    assert list(gold) == [dag_dataset("silver_discogs")]
+    assert [uri for uri, _ in silver.iter_datasets()] == [dag_dataset("bronze_discogs_daily").uri]
+    assert [uri for uri, _ in gold.iter_datasets()] == [dag_dataset("silver_discogs").uri]
 
 
 def test_resolve_ds_prefers_conf_then_upstream_run():

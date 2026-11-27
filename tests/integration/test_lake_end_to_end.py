@@ -1,4 +1,4 @@
-"""Bronze no MinIO -> operadores silver e gold do Airflow -> tabelas consultáveis no Trino."""
+"""Bronze in S3 (SeaweedFS) -> Airflow silver and gold operators -> tables queryable in Trino."""
 
 from dataclasses import replace
 
@@ -18,20 +18,25 @@ D1, D2 = "2026-11-26", "2026-11-27"
 def lake(it_settings):
     s = it_settings
     lake = S3Lake(s.s3_endpoint, s.s3_access_key, s.s3_secret_key, s.bucket)
-    existing = [b["Name"] for b in lake.client.list_buckets()["Buckets"]]
-    if s.bucket in existing:  # recomeça do zero
-        objs = lake.client.list_objects_v2(Bucket=s.bucket).get("Contents", [])
-        while objs:
-            lake.client.delete_objects(Bucket=s.bucket, Delete={"Objects": [{"Key": o["Key"]} for o in objs]})
-            objs = lake.client.list_objects_v2(Bucket=s.bucket).get("Contents", [])
-    else:
-        lake.client.create_bucket(Bucket=s.bucket)
-    return lake
+    lake.client.create_bucket(Bucket=s.bucket)
+    yield lake
+    # best-effort cleanup through the same SeaweedFS-safe delete the operators use
+    for area in ("bronze", "silver", "gold", "control"):
+        lake.delete_prefix(area)
+    try:
+        lake.client.delete_bucket(Bucket=s.bucket)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 @pytest.fixture(scope="module")
-def trino(it_settings):
-    return TrinoRegistrar(it_settings.trino_host, it_settings.trino_port, it_settings.bucket, it_settings.gold_schema)
+def trino(it_settings, lake):
+    registrar = TrinoRegistrar(it_settings.trino_host, it_settings.trino_port, it_settings.bucket, it_settings.gold_schema)
+    yield registrar
+    schema = f"lakehouse.{it_settings.gold_schema}"
+    for (table,) in registrar.query(f"SHOW TABLES FROM {schema}"):
+        registrar.query(f"DROP TABLE {schema}.{table}")
+    registrar.query(f"DROP SCHEMA {schema}")
 
 
 @pytest.fixture(scope="module")
@@ -54,7 +59,7 @@ def q(trino, sql):
     return trino.query(sql.replace("{s}", f"lakehouse.{trino.schema}"))
 
 
-def test_silver_writes_daily_partitions_in_minio(pipeline, lake, it_settings):
+def test_silver_writes_daily_partitions_in_s3(pipeline, lake, it_settings):
     keys = [o["Key"] for o in lake.client.list_objects_v2(Bucket=it_settings.bucket, Prefix="silver/releases/")["Contents"]]
     assert any(f"dt={D1}/" in k for k in keys) and any(f"dt={D2}/" in k for k in keys)
     assert pipeline[f"silver.releases.{D2}"]["rows"] == 2
@@ -94,5 +99,5 @@ def test_gold_rebuild_is_idempotent(pipeline, it_settings, trino):
 
 
 def test_settings_point_to_isolated_bucket(it_settings):
-    assert it_settings.bucket == "lakehouse-it" and it_settings.gold_schema == "gold_it"
-    assert replace(it_settings).lake_root == "s3a://lakehouse-it"
+    assert it_settings.bucket.startswith("lakehouse-it-") and it_settings.gold_schema == "gold_it"
+    assert replace(it_settings).lake_root == f"s3a://{it_settings.bucket}"

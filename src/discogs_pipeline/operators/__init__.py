@@ -1,4 +1,4 @@
-"""Operadores do Airflow, um por tipo de transformação. A chave é o valor de `operator:` nos YAML."""
+"""Airflow operators, one per kind of transformation. Keys are the `operator:` values used in the YAML."""
 
 from .ingestion import DiscogsApiOperator
 from .spark import SparkGoldOperator, SparkSilverOperator

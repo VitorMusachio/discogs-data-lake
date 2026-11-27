@@ -1,10 +1,10 @@
-"""Núcleo das transformações SQL (silver e gold), sem depender do Airflow.
+"""Core of the SQL transformations (silver and gold), with no Airflow dependency.
 
-O mesmo caminho é usado pelos operadores e pelos testes:
-  1. registra como views só as entradas citadas no SQL (bronze_* com schema explícito, ou silver_*)
-  2. executa o SQL no Spark
-  3. grava Parquet (silver: partição dt=<ds> sobrescrita; gold: tabela inteira, opcionalmente particionada)
-  4. relê o que foi gravado e roda os checks de qualidade declarados no YAML
+Operators and tests go through the same path:
+  1. register as views only the inputs the SQL cites (bronze_* with an explicit schema, or silver_*)
+  2. run the SQL in Spark
+  3. write Parquet (silver: overwrite the dt=<ds> partition; gold: whole table, optionally partitioned)
+  4. read back what was written and run the quality checks declared in the YAML
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
@@ -53,20 +54,21 @@ def output_location(root: str, layer: str, task: TaskSpec, ds: str) -> str:
 def run_checks(table: str, df: DataFrame, checks: dict) -> None:
     rows = df.count()
     if rows < int(checks.get("min_rows", 0)):
-        raise DataQualityError(f"{table}: {rows} linhas, mínimo {checks['min_rows']}")
+        raise DataQualityError(f"{table}: {rows} rows, expected at least {checks['min_rows']}")
     for col in checks.get("not_null", []):
         nulls = df.where(F.col(col).isNull()).count()
         if nulls:
-            raise DataQualityError(f"{table}.{col}: {nulls} nulos")
+            raise DataQualityError(f"{table}.{col}: {nulls} nulls")
     unique = checks.get("unique")
     if unique:
         dupes = df.groupBy(*unique).count().where("count > 1").count()
         if dupes:
-            raise DataQualityError(f"{table}: {dupes} chaves repetidas em {unique}")
+            raise DataQualityError(f"{table}: {dupes} duplicate keys on {unique}")
 
 
 def run_sql_task(spark: SparkSession, root: str, sql_dir: str | Path, dag: DagSpec, task: TaskSpec,
-                 ds: str) -> TableResult:
+                 ds: str, clear_location: Callable[[str], None] | None = None) -> TableResult:
+    """Build one table. `clear_location(location)`, when given, empties the destination before Spark writes."""
     sql = (Path(sql_dir) / task.sql).read_text().strip().rstrip(";")
     views = referenced_views(sql)
     if dag.layer == "silver":
@@ -75,7 +77,10 @@ def run_sql_task(spark: SparkSession, root: str, sql_dir: str | Path, dag: DagSp
         register_silver(spark, root, views["silver"])
 
     location = output_location(root, dag.layer, task, ds)
-    writer = spark.sql(sql).write.mode("overwrite")
+    df = spark.sql(sql)
+    if clear_location:
+        clear_location(location)
+    writer = df.write.mode("overwrite")
     if task.partition_by:
         writer = writer.partitionBy(task.partition_by)
     writer.parquet(location)
@@ -83,5 +88,5 @@ def run_sql_task(spark: SparkSession, root: str, sql_dir: str | Path, dag: DagSp
     stored = spark.read.parquet(location)
     run_checks(task.task_id, stored, task.checks)
     rows = stored.count()
-    log.info("%s.%s: %s linhas em %s", dag.layer, task.task_id, rows, location)
+    log.info("%s.%s: %s rows at %s", dag.layer, task.task_id, rows, location)
     return TableResult(task.task_id, location, rows, stored)

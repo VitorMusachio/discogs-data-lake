@@ -27,7 +27,7 @@ def bronze_lines(lake, entity):
 
 def test_load_config_ignores_placeholder_username(tmp_path):
     cfg = tmp_path / "t.yml"
-    cfg.write_text("usernames: [seu_username_aqui, vitor]\ndiscovery: [{year: 1991}]\nlimits: {max_tracked_releases: 7}\n")
+    cfg.write_text("usernames: [your_username_here, vitor]\ndiscovery: [{year: 1991}]\nlimits: {max_tracked_releases: 7}\n")
     config = load_config(cfg)
     assert config.usernames == ["vitor"]
     assert config.max_tracked_releases == 7
@@ -45,7 +45,7 @@ def test_tracked_releases_only_grow(lake):
 
 
 def test_search_results_only_yield_release_ids():
-    # Formato real de /database/search: label é lista de nomes, não há campo de artista.
+    # Real /database/search shape: label is a list of names and there is no artist field.
     results = [
         {"id": 1, "type": "release", "label": ["Liquid Records", "Tidal"]},
         {"id": 2, "type": "master"},
@@ -88,7 +88,7 @@ def test_snapshot_fetches_release_and_usd_stats(lake):
     client = FakeClient(routes={
         "/releases/1": release(1),
         "/marketplace/stats/1": {"lowest_price": {"value": 9.5, "currency": "USD"}, "num_for_sale": 3},
-        # release 2 foi removido do Discogs (404)
+        # release 2 was removed from Discogs (404)
     })
     out = run_snapshot(client, lake, TrackingConfig(), DS)
     assert out == {"tracked": 2, "releases": 1, "stats": 1, "failed": 0}

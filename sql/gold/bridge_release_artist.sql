@@ -1,4 +1,4 @@
--- Artistas creditados em cada release (um release pode ter vários), na coleta mais recente do release.
+-- Artists credited on each release (a release can have several), from the release's latest collection.
 WITH latest AS (
     SELECT id_release, MAX(dt) AS dt FROM silver_release_artists GROUP BY id_release
 )

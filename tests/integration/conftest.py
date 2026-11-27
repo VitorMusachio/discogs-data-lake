@@ -1,19 +1,21 @@
-"""Testes de integração: rodam dentro do container do Airflow, com a stack no ar.
+"""Integration tests: they run inside the Airflow container, with the stack up.
 
     docker compose exec airflow-scheduler python -m pytest -m integration tests/integration
 
-Usam um bucket (`lakehouse-it`) e um schema no Trino (`gold_it`) separados dos dados reais.
+Each run uses its own bucket (`lakehouse-it-<timestamp>`) and the `gold_it` schema in Trino,
+kept apart from real data, and drops both at the end.
 """
 
 import importlib.util
 import os
+import time
 
 import pytest
 
-if importlib.util.find_spec("airflow.models") is None:  # fora do container: nada a coletar aqui
+if importlib.util.find_spec("airflow.models") is None:  # outside the container: nothing to collect here
     collect_ignore_glob = ["test_*.py"]
 
-IT_BUCKET, IT_SCHEMA = "lakehouse-it", "gold_it"
+IT_BUCKET, IT_SCHEMA = f"lakehouse-it-{int(time.time())}", "gold_it"
 
 
 def pytest_collection_modifyitems(items):

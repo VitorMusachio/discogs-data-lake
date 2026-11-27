@@ -1,8 +1,8 @@
-"""Publica as tabelas Gold no Trino (catálogo `lakehouse`, schema `gold` por padrão) como tabelas externas no Hive Metastore.
+"""Publish gold tables in Trino (catalog `lakehouse`, schema `gold` by default) as external tables in the Hive Metastore.
 
-O Spark só grava Parquet; o Trino registra a tabela com o schema do DataFrame.
-Os caminhos usam s3a:// porque o Hive Metastore (Hadoop) só conhece esse esquema; o Trino aceita os dois.
-Como são tabelas externas, DROP + CREATE apaga só o metadado, nunca os dados.
+Spark only writes Parquet; Trino registers the table using the DataFrame schema.
+Locations use s3a:// because the Hive Metastore (Hadoop) only knows that scheme; Trino accepts both.
+Since the tables are external, DROP + CREATE only touches metadata, never the data.
 """
 
 from __future__ import annotations
@@ -29,14 +29,14 @@ def trino_type(dt: T.DataType) -> str:
         return "timestamp(6)"
     if isinstance(dt, T.DecimalType):
         return f"decimal({dt.precision},{dt.scale})"
-    raise TypeError(f"Tipo sem mapeamento para o Trino: {dt}")
+    raise TypeError(f"No Trino mapping for type: {dt}")
 
 
 def create_table_sql(table: str, schema: T.StructType, location: str, partition_col: str | None,
                      target_schema: str = "gold") -> str:
     fields = [f for f in schema.fields if f.name != partition_col]
     if partition_col:
-        fields.append(schema[partition_col])  # no Hive, colunas de partição vêm por último
+        fields.append(schema[partition_col])  # Hive requires partition columns last
     cols = ",\n  ".join(f"{f.name} {trino_type(f.dataType)}" for f in fields)
     props = [f"external_location = '{location}'", "format = 'PARQUET'"]
     if partition_col:

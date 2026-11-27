@@ -1,7 +1,7 @@
-"""Silver e gold: uma tabela por tarefa, gerada a partir de um arquivo SQL executado no Spark.
+"""Silver and gold: one table per task, built from a SQL file run in Spark.
 
-O operador base cuida da sessão Spark, da execução do SQL, da gravação e dos checks
-(ver discogs_pipeline.transform). As subclasses mudam só o que é próprio da camada.
+The base operator handles the Spark session, running the SQL, writing and the checks
+(see discogs_pipeline.transform). Subclasses only change what is specific to their layer.
 """
 
 from __future__ import annotations
@@ -20,7 +20,18 @@ class SparkSqlOperator(LakeOperator):
         self.task_spec = task_spec
 
     def publish(self, result, settings: Settings) -> None:
-        """Gancho pós-gravação (a gold registra a tabela no Trino)."""
+        """Post-write hook (gold registers the table in Trino)."""
+
+    @staticmethod
+    def _clearer(settings: Settings):
+        """Empty the destination through the S3 API before Spark overwrites it (see S3Lake.delete_prefix)."""
+        root = settings.lake_root
+        if not root.startswith("s3a://"):
+            return None
+        from ..storage import lake_from_settings
+
+        lake = lake_from_settings(settings)
+        return lambda location: lake.delete_prefix(location.removeprefix(root).lstrip("/"))
 
     def run(self, ds: str, settings: Settings):
         from ..spark_session import create_spark
@@ -28,7 +39,8 @@ class SparkSqlOperator(LakeOperator):
 
         spark = create_spark(f"{self.layer}-{self.task_spec.task_id}", settings)
         try:
-            result = run_sql_task(spark, settings.lake_root, settings.sql_dir, self.dag_spec, self.task_spec, ds)
+            result = run_sql_task(spark, settings.lake_root, settings.sql_dir, self.dag_spec, self.task_spec, ds,
+                                  clear_location=self._clearer(settings))
             self.publish(result, settings)
             return {"table": result.table, "rows": result.rows, "location": result.location}
         finally:
@@ -36,13 +48,13 @@ class SparkSqlOperator(LakeOperator):
 
 
 class SparkSilverOperator(SparkSqlOperator):
-    """Lê o JSON bruto do dia (fontes bronze_* do YAML) e grava silver/<tabela>/dt=<ds>/."""
+    """Read the day's raw JSON (bronze_* sources from the YAML) and write silver/<table>/dt=<ds>/."""
 
     ui_color = "#eef3fa"
 
 
 class SparkGoldOperator(SparkSqlOperator):
-    """Lê as tabelas silver_*, reconstrói gold/<tabela>/ e publica a tabela no Trino."""
+    """Read silver_* tables, rebuild gold/<table>/ and publish the table in Trino."""
 
     ui_color = "#fbf6e6"
 

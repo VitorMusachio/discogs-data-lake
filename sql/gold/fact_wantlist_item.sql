@@ -1,4 +1,4 @@
--- Estado atual da wantlist de cada usuário (última coleta).
+-- Current state of each user's wantlist (latest collection).
 WITH latest AS (
     SELECT nm_username, MAX(dt) AS dt FROM silver_wantlist_items GROUP BY nm_username
 )

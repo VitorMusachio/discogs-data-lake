@@ -1,4 +1,4 @@
--- Estado atual da coleção de cada usuário (última coleta). id_instance distingue cópias do mesmo disco.
+-- Current state of each user's collection (latest collection). id_instance tells copies of the same record apart.
 WITH latest AS (
     SELECT nm_username, MAX(dt) AS dt FROM silver_collection_items GROUP BY nm_username
 )

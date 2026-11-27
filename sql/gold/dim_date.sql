@@ -1,4 +1,4 @@
--- Calendário do primeiro ao último dia com snapshot.
+-- Calendar from the first to the last day with a snapshot.
 WITH bounds AS (SELECT MIN(dt) AS first_dt, MAX(dt) AS last_dt FROM silver_releases)
 SELECT d                                AS dt,
        YEAR(d)                          AS nr_year,

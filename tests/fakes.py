@@ -1,4 +1,4 @@
-"""Dublês da API do Discogs com payloads no formato documentado."""
+"""Discogs API test doubles with payloads in the documented shape."""
 
 from discogs_pipeline.api import DiscogsError
 
@@ -37,8 +37,8 @@ class FakeClient:
 
 
 def seed_bronze_day(lake, ds, *, have, first_day):
-    """Um dia de bronze sintético: 2 releases (um sem master e com gravadora placeholder), stats,
-    entidades novas só no primeiro dia, coleção (uma cópia sai no segundo dia) e wantlist."""
+    """One day of synthetic bronze: 2 releases (one without a master and with a placeholder label), stats,
+    new entities only on the first day, collection (one copy leaves on the second day) and wantlist."""
     from discogs_pipeline.storage import write_bronze
     from discogs_pipeline.tracking import TrackedReleases
 

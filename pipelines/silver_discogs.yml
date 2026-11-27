@@ -1,14 +1,14 @@
-# Silver: cada tarefa gera uma tabela a partir de sql/silver/<tarefa>.sql, lendo o JSON bruto do dia.
-# Roda quando a bronze diária termina e processa a mesma data da bronze.
+# Silver: each task builds one table from sql/silver/<task>.sql, reading the day's raw JSON.
+# Runs when the daily bronze DAG finishes and processes the same date as that bronze run.
 dag_id: silver_discogs
 layer: silver
-description: Padroniza nomes e tipos do JSON bruto (uma partição dt por dia).
+description: Standardizes names and types of the raw JSON (one dt partition per day).
 schedule:
   after: [bronze_discogs_daily]
-max_active_tasks: 2   # cada tarefa abre uma JVM do Spark
+max_active_tasks: 2   # each task starts its own Spark JVM
 
-# Entradas brutas. `data_schema` descreve só o payload da API; o envelope
-# (ingested_at, id, username, seed) é acrescentado automaticamente. Campos não listados são ignorados.
+# Raw inputs. `data_schema` describes only the API payload; the envelope
+# (ingested_at, id, username, seed) is added automatically. Fields not listed are ignored.
 sources:
   bronze_releases:
     path: bronze/releases/dt={ds}
@@ -49,7 +49,7 @@ tasks:
     checks: {unique: [id_release], not_null: [id_release]}
   release_artists:
     operator: spark_silver
-    checks: {not_null: [id_release, id_artist]}  # um artista pode aparecer duas vezes no crédito
+    checks: {not_null: [id_release, id_artist]}  # an artist can appear twice in one credit
   tracks:
     operator: spark_silver
     checks: {not_null: [id_release]}
@@ -73,5 +73,5 @@ tasks:
     checks: {unique: [nm_username, id_release], not_null: [nm_username, id_release]}
   tracked_releases:
     operator: spark_silver
-    partitioned: false   # estado atual, sem histórico por dia
+    partitioned: false   # current state, no per-day history
     checks: {unique: [id_release], not_null: [id_release]}

@@ -1,8 +1,8 @@
-# Ingestão diária pela API (sem SQL). A ordem importa: as listas de usuários acrescentam releases
-# ao conjunto acompanhado, o snapshot coleta esse conjunto e as entidades novas saem dos releases do dia.
+# Daily ingestion from the API (no SQL). Order matters: user lists add releases to the tracked set,
+# the snapshot collects that set, and new entities come from the day's releases.
 dag_id: bronze_discogs_daily
 layer: bronze
-description: Coleta coleções, wantlists, o snapshot dos releases acompanhados e entidades novas.
+description: Collects collections, wantlists, the snapshot of tracked releases and new entities.
 schedule: "@daily"
 retries: 1
 retry_delay_minutes: 10
